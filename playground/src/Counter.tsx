@@ -1,0 +1,57 @@
+import { useMemo } from "react";
+
+import { useLogic, useSignal } from "@sigrea/react";
+import { CounterLogic, type CounterProps } from "./CounterLogic";
+
+export function Counter(props: CounterProps) {
+	const { initialCount, step } = props;
+	const logicProps = useMemo(
+		() => ({ initialCount, step }),
+		[initialCount, step],
+	);
+
+	const counter = useLogic(CounterLogic, logicProps);
+	const count = useSignal(counter.count);
+
+	return (
+		<div className="counter">
+			<p className="counter__value">
+				<span className="counter__value-label">Count</span>
+				<span className="counter__value-number">{count}</span>
+			</p>
+			<div className="counter__controls">
+				<button
+					type="button"
+					className="counter__button"
+					onClick={() => counter.decrement()}
+				>
+					Decrement
+				</button>
+				<button
+					type="button"
+					className="counter__button"
+					onClick={() => counter.reset()}
+				>
+					Reset
+				</button>
+				<button
+					type="button"
+					className="counter__button"
+					onClick={() => counter.increment()}
+				>
+					Increment
+				</button>
+			</div>
+			<label className="counter__input">
+				<span>Manual update</span>
+				<input
+					type="number"
+					value={count}
+					onChange={(event) =>
+						(counter.count.value = Number.parseInt(event.target.value, 10) || 0)
+					}
+				/>
+			</label>
+		</div>
+	);
+}
