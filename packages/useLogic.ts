@@ -53,7 +53,12 @@ export function useLogic<TReturn extends object, TProps = void>(
 		};
 	}
 
-	const instance = stateRef.current!.instance;
+	const state = stateRef.current;
+	if (state === undefined) {
+		throw new Error("useLogic failed to mount the requested logic instance.");
+	}
+
+	const instance = state.instance;
 
 	useEffect(() => {
 		const state = stateRef.current;
@@ -94,4 +99,3 @@ export function useLogic<TReturn extends object, TProps = void>(
 
 	return instance;
 }
-

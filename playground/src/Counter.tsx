@@ -47,9 +47,10 @@ export function Counter(props: CounterProps) {
 				<input
 					type="number"
 					value={count}
-					onChange={(event) =>
-						(counter.count.value = Number.parseInt(event.target.value, 10) || 0)
-					}
+					onChange={(event) => {
+						const next = Number.parseInt(event.target.value, 10) || 0;
+						counter.count.value = next;
+					}}
 				/>
 			</label>
 		</div>

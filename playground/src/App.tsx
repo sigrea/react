@@ -57,9 +57,7 @@ export function App() {
 								min={1}
 								value={step}
 								onChange={(event) =>
-									handleStepChange(
-										Number.parseInt(event.target.value, 10) || 1,
-									)
+									handleStepChange(Number.parseInt(event.target.value, 10) || 1)
 								}
 							/>
 						</label>
@@ -79,4 +77,3 @@ export function App() {
 		</div>
 	);
 }
-

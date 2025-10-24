@@ -1,7 +1,7 @@
+import path from "node:path";
+import react from "@vitejs/plugin-react";
 // @ts-nocheck
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "node:path";
 
 const rootDir = __dirname;
 const projectRoot = path.resolve(rootDir, "..");
@@ -24,4 +24,3 @@ export default defineConfig({
 		emptyOutDir: true,
 	},
 });
-
