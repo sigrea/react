@@ -32,6 +32,7 @@
 	"files": ["dist"],
 	"keywords": ["signals", "reactivity", "react", "logic", "typescript"],
 	"scripts": {
+		"dev": "vite --config playground/vite.config.ts",
 		"build": "unbuild",
 		"prepack": "unbuild",
 		"test": "vitest run",
@@ -47,6 +48,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
+		"@vitejs/plugin-react": "^4.3.3",
 		"@changesets/cli": "^2.29.6",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
@@ -57,6 +59,7 @@
 		"tsx": "^4.20.5",
 		"typescript": "5.9.3",
 		"unbuild": "3.6.1",
+		"vite": "^5.4.6",
 		"vitest": "^3.2.4",
 		"jsdom": "^24.1.3"
 	},
