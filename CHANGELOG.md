@@ -1,5 +1,17 @@
 # @sigrea/react
 
+## v0.2.1
+
+[compare changes](https://github.com/sigrea/react/compare/v0.2.0...v0.2.1)
+
+### 🎨 Styles
+
+- Inline package manifest arrays ([0048edd](https://github.com/sigrea/react/commit/0048edd))
+
+### ❤️ Contributors
+
+- Aose-yuu <aose.developer@gmail.com>
+
 ## v0.2.0
 
 [compare changes](https://github.com/sigrea/react/compare/v0.1.0...v0.2.0)
