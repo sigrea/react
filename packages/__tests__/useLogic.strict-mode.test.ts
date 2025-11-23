@@ -30,7 +30,9 @@ describe("useLogic in StrictMode", () => {
 			return null;
 		}
 
-		await root.render(createElement(StrictMode, null, createElement(TestComponent)));
+		await root.render(
+			createElement(StrictMode, null, createElement(TestComponent)),
+		);
 		await flushMicrotasks(2);
 
 		expect(cleanup).not.toHaveBeenCalled();
