@@ -9,6 +9,7 @@ interface LogicState<TReturn extends object, TProps> {
 	props: TProps | undefined;
 	subscribers: number;
 	disposed: boolean;
+	pendingDisposeToken: symbol | null;
 }
 
 export function useLogic<TReturn extends object, TProps = void>(
@@ -26,6 +27,7 @@ export function useLogic<TReturn extends object, TProps = void>(
 
 	if (shouldRemount) {
 		if (currentState !== undefined) {
+			currentState.pendingDisposeToken = null;
 			cleanupLogic(currentState.instance);
 			stateRef.current = undefined;
 		}
@@ -41,6 +43,7 @@ export function useLogic<TReturn extends object, TProps = void>(
 			props,
 			subscribers: 0,
 			disposed: false,
+			pendingDisposeToken: null,
 		};
 	}
 
@@ -55,6 +58,10 @@ export function useLogic<TReturn extends object, TProps = void>(
 		const state = stateRef.current;
 		if (state === undefined || state.instance !== instance) {
 			return () => {};
+		}
+
+		if (state.pendingDisposeToken !== null) {
+			state.pendingDisposeToken = null;
 		}
 
 		state.subscribers += 1;
@@ -72,9 +79,26 @@ export function useLogic<TReturn extends object, TProps = void>(
 			}
 
 			if (!latest.disposed && latest.subscribers === 0) {
-				latest.disposed = true;
-				stateRef.current = undefined;
-				cleanupLogic(instance);
+				const token = Symbol("pending-dispose");
+				latest.pendingDisposeToken = token;
+
+				queueMicrotask(() => {
+					const current = stateRef.current;
+					if (
+						current === undefined ||
+						current.instance !== instance ||
+						current.subscribers > 0 ||
+						current.disposed ||
+						current.pendingDisposeToken !== token
+					) {
+						return;
+					}
+
+					current.disposed = true;
+					current.pendingDisposeToken = null;
+					stateRef.current = undefined;
+					cleanupLogic(instance);
+				});
 			}
 		};
 	}, [instance]);
