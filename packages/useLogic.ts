@@ -3,21 +3,13 @@ import { useEffect, useRef } from "react";
 import type { LogicArgs, LogicFunction, LogicInstance } from "@sigrea/core";
 import { cleanupLogic, mountLogic } from "@sigrea/core";
 
-const scheduleMicrotask = (callback: () => void) => {
-	if (typeof globalThis.queueMicrotask === "function") {
-		globalThis.queueMicrotask(callback);
-		return;
-	}
-
-	Promise.resolve().then(callback);
-};
-
 interface LogicState<TReturn extends object, TProps> {
 	instance: LogicInstance<TReturn>;
 	logic: LogicFunction<TReturn, TProps>;
 	props: TProps | undefined;
-	cleanupScheduled: boolean;
-	cleanupToken: number;
+	subscribers: number;
+	disposed: boolean;
+	pendingDisposeToken: symbol | null;
 }
 
 export function useLogic<TReturn extends object, TProps = void>(
@@ -35,6 +27,7 @@ export function useLogic<TReturn extends object, TProps = void>(
 
 	if (shouldRemount) {
 		if (currentState !== undefined) {
+			currentState.pendingDisposeToken = null;
 			cleanupLogic(currentState.instance);
 			stateRef.current = undefined;
 		}
@@ -48,8 +41,9 @@ export function useLogic<TReturn extends object, TProps = void>(
 			instance: mountLogic(logic, ...logicArgs),
 			logic,
 			props,
-			cleanupScheduled: false,
-			cleanupToken: 0,
+			subscribers: 0,
+			disposed: false,
+			pendingDisposeToken: null,
 		};
 	}
 
@@ -66,7 +60,11 @@ export function useLogic<TReturn extends object, TProps = void>(
 			return () => {};
 		}
 
-		state.cleanupScheduled = false;
+		if (state.pendingDisposeToken !== null) {
+			state.pendingDisposeToken = null;
+		}
+
+		state.subscribers += 1;
 
 		return () => {
 			const latest = stateRef.current;
@@ -75,25 +73,33 @@ export function useLogic<TReturn extends object, TProps = void>(
 				return;
 			}
 
-			latest.cleanupScheduled = true;
-			const token = latest.cleanupToken + 1;
-			latest.cleanupToken = token;
+			latest.subscribers -= 1;
+			if (latest.subscribers < 0) {
+				latest.subscribers = 0;
+			}
 
-			scheduleMicrotask(() => {
-				const updated = stateRef.current;
-				if (
-					updated === undefined ||
-					updated.instance !== instance ||
-					!updated.cleanupScheduled ||
-					updated.cleanupToken !== token
-				) {
-					return;
-				}
+			if (!latest.disposed && latest.subscribers === 0) {
+				const token = Symbol("pending-dispose");
+				latest.pendingDisposeToken = token;
 
-				updated.cleanupScheduled = false;
-				stateRef.current = undefined;
-				cleanupLogic(instance);
-			});
+				queueMicrotask(() => {
+					const current = stateRef.current;
+					if (
+						current === undefined ||
+						current.instance !== instance ||
+						current.subscribers > 0 ||
+						current.disposed ||
+						current.pendingDisposeToken !== token
+					) {
+						return;
+					}
+
+					current.disposed = true;
+					current.pendingDisposeToken = null;
+					stateRef.current = undefined;
+					cleanupLogic(instance);
+				});
+			}
 		};
 	}, [instance]);
 

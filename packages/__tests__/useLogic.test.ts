@@ -23,6 +23,37 @@ describe("useLogic", () => {
 		cleanupLogics();
 	});
 
+	it("does not dispose when re-rendered with identical props", async () => {
+		const cleanup = vi.fn();
+		const logic = defineLogic<number>()((value) => {
+			onUnmount(() => cleanup(value));
+			return { value };
+		});
+
+		const observed: Array<LogicInstance<{ value: number }>> = [];
+
+		function TestComponent({ value }: { value: number }) {
+			const instance = useLogic(logic, value);
+			observed.push(instance);
+			return null;
+		}
+
+		await root.render(createElement(TestComponent, { value: 1 }));
+		await root.render(createElement(TestComponent, { value: 1 }));
+
+		await flushMicrotasks(2);
+
+		expect(observed).toHaveLength(2);
+		expect(observed[0]).toBe(observed[1]);
+		expect(cleanup).not.toHaveBeenCalled();
+
+		await root.unmount();
+		await flushMicrotasks(2);
+
+		expect(cleanup).toHaveBeenCalledTimes(1);
+		expect(cleanup).toHaveBeenCalledWith(1);
+	});
+
 	it("mounts logic and cleans up on unmount", async () => {
 		const cleanup = vi.fn();
 		const makeLogic = defineLogic<number>()((value) => {
