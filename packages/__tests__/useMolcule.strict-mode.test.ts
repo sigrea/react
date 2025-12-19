@@ -1,12 +1,12 @@
 import { StrictMode, createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { cleanupLogics, defineLogic, onUnmount } from "@sigrea/core";
+import { disposeTrackedMolecules, molecule, onUnmount } from "@sigrea/core";
 
-import { useLogic } from "../useLogic";
+import { useMolcule } from "../useMolcule";
 import { createTestRoot, flushMicrotasks } from "./testUtils";
 
-describe("useLogic in StrictMode", () => {
+describe("useMolcule in StrictMode", () => {
 	let root: ReturnType<typeof createTestRoot>;
 
 	beforeEach(() => {
@@ -15,18 +15,18 @@ describe("useLogic in StrictMode", () => {
 
 	afterEach(async () => {
 		await root.unmount();
-		cleanupLogics();
+		disposeTrackedMolecules();
 	});
 
-	it("keeps the logic instance alive across StrictMode effect replays", async () => {
+	it("keeps the molecule instance alive across StrictMode effect replays", async () => {
 		const cleanup = vi.fn();
-		const logic = defineLogic<number>()((value) => {
+		const counterMolcule = molecule((value: number) => {
 			onUnmount(() => cleanup(value));
 			return { value };
 		});
 
 		function TestComponent() {
-			useLogic(logic, 1);
+			useMolcule(counterMolcule, 1);
 			return null;
 		}
 

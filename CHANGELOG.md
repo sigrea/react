@@ -18,9 +18,9 @@
 
 ### 🩹 Fixes
 
-- Dispose logic instances synchronously ([1f202e9](https://github.com/sigrea/react/commit/1f202e9))
-- Defer logic disposal until post-rerender ([49cacc7](https://github.com/sigrea/react/commit/49cacc7))
-- Defer useLogic disposal until rerender completes ([#6](https://github.com/sigrea/react/pull/6))
+- Dispose molcule instances synchronously ([1f202e9](https://github.com/sigrea/react/commit/1f202e9))
+- Defer molcule disposal until post-rerender ([49cacc7](https://github.com/sigrea/react/commit/49cacc7))
+- Defer useMolcule disposal until rerender completes ([#6](https://github.com/sigrea/react/pull/6))
 
 ### 📖 Documentation
 
@@ -39,11 +39,11 @@
 
 ### ✅ Tests
 
-- Cover useLogic rerender and strict mode replay ([5aa1c34](https://github.com/sigrea/react/commit/5aa1c34))
+- Cover useMolcule rerender and strict mode replay ([5aa1c34](https://github.com/sigrea/react/commit/5aa1c34))
 
 ### 🎨 Styles
 
-- Format strict-mode useLogic test ([ec918fb](https://github.com/sigrea/react/commit/ec918fb))
+- Format strict-mode useMolcule test ([ec918fb](https://github.com/sigrea/react/commit/ec918fb))
 
 ### ❤️ Contributors
 
@@ -54,4 +54,4 @@
 
 ### Minor Changes
 
-- e7fa75e: Introduce the initial React adapter hooks for Sigrea logic and signals, including playground scaffolding for manual verification.
+- e7fa75e: Introduce the initial React adapter hooks for Sigrea molcules and signals, including playground scaffolding for manual verification.
