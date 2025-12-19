@@ -1,5 +1,27 @@
 # @sigrea/react
 
+## v0.3.0
+
+[compare changes](https://github.com/sigrea/react/compare/v0.2.1...v0.3.0)
+
+### 🚀 Enhancements
+
+- ⚠️  Migrate adapter to Molecule API ([#11](https://github.com/sigrea/react/pull/11))
+
+### 🤖 CI
+
+- Migrate to OIDC trusted publishing ([#10](https://github.com/sigrea/react/pull/10))
+- Fix publish workflow to use OIDC ([1440c4c](https://github.com/sigrea/react/commit/1440c4c))
+
+#### ⚠️ Breaking Changes
+
+- ⚠️  Migrate adapter to Molecule API ([#11](https://github.com/sigrea/react/pull/11))
+
+### ❤️ Contributors
+
+- Aose ([@aose-yuu](https://github.com/aose-yuu))
+- Aose-yuu <aose.developer@gmail.com>
+
 ## v0.2.1
 
 [compare changes](https://github.com/sigrea/react/compare/v0.2.0...v0.2.1)
