@@ -1,16 +1,16 @@
 import { useMemo } from "react";
 
-import { useLogic, useSignal } from "@sigrea/react";
-import { CounterLogic, type CounterProps } from "./CounterLogic";
+import { useMolcule, useSignal } from "@sigrea/react";
+import { CounterMolecule, type CounterProps } from "./CounterMolecule";
 
 export function Counter(props: CounterProps) {
 	const { initialCount, step } = props;
-	const logicProps = useMemo(
+	const moleculeProps = useMemo(
 		() => ({ initialCount, step }),
 		[initialCount, step],
 	);
 
-	const counter = useLogic(CounterLogic, logicProps);
+	const counter = useMolcule(CounterMolecule, moleculeProps);
 	const count = useSignal(counter.count);
 
 	return (

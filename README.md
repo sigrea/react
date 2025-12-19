@@ -1,24 +1,24 @@
 # @sigrea/react
 
-`@sigrea/react` adapts [@sigrea/core](https://www.npmjs.com/package/@sigrea/core) logic modules and signals for use in React components. It binds scope-aware lifecycles to `useEffect`, synchronizes signal subscriptions with React rendering, and provides hooks for both shallow and deep reactivity.
+`@sigrea/react` adapts [@sigrea/core](https://www.npmjs.com/package/@sigrea/core) molecule modules and signals for use in React components. It binds scope-aware lifecycles to `useEffect`, synchronizes signal subscriptions with React rendering, and provides hooks for both shallow and deep reactivity.
 
 - **Signal subscriptions.** `useSignal` subscribes to signals and computed values, triggering re-renders when they change.
 - **Computed subscriptions.** `useComputed` subscribes to computed values and memoizes them per component instance.
 - **Deep signal subscriptions.** `useDeepSignal` subscribes to deep signal objects and exposes them for direct mutation.
-- **Logic lifecycles.** `useLogic` mounts logic factories and binds their lifecycles to React components.
+- **Molecule lifecycles.** `useMolcule` mounts molecule factories and binds their lifecycles to React components.
 
 ## Table of Contents
 
 - [Install](#install)
 - [Quick Start](#quick-start)
   - [Consume a Signal](#consume-a-signal)
-  - [Bridge Framework-Agnostic Logic](#bridge-framework-agnostic-logic)
+  - [Bridge Framework-Agnostic Molecules](#bridge-framework-agnostic-molecules)
   - [Work with Deep Signals](#work-with-deep-signals)
 - [API Reference](#api-reference)
   - [useSignal](#usesignal)
   - [useComputed](#usecomputed)
   - [useDeepSignal](#usedeepsignal)
-  - [useLogic](#uselogic)
+  - [useMolcule](#usemolcule)
 - [Testing](#testing)
 - [Development](#development)
 - [License](#license)
@@ -47,13 +47,13 @@ export function CounterLabel() {
 }
 ```
 
-### Bridge Framework-Agnostic Logic
+### Bridge Framework-Agnostic Molecules
 
 ```tsx
-import { defineLogic, signal } from "@sigrea/core";
-import { useLogic, useSignal } from "@sigrea/react";
+import { molecule, signal } from "@sigrea/core";
+import { useMolcule, useSignal } from "@sigrea/react";
 
-const CounterLogic = defineLogic<{ initialCount: number }>()((props) => {
+const CounterMolecule = molecule((props: { initialCount: number }) => {
   const count = signal(props.initialCount);
 
   const increment = () => {
@@ -68,7 +68,7 @@ const CounterLogic = defineLogic<{ initialCount: number }>()((props) => {
 });
 
 export function Counter(props: { initialCount: number }) {
-  const counter = useLogic(CounterLogic, props);
+  const counter = useMolcule(CounterMolcule, props);
   const value = useSignal(counter.count);
 
   return (
@@ -132,26 +132,23 @@ function useDeepSignal<T extends object>(signal: DeepSignal<T>): T
 
 Exposes a deep signal object for direct mutation within the component. Updates to nested properties trigger re-renders, and the subscription is cleaned up when the component unmounts.
 
-### useLogic
+### useMolcule
 
 ```tsx
-function useLogic<TProps, TReturn>(
-  logic: LogicFunction<TProps, TReturn>,
+function useMolcule<TProps, TReturn>(
+  molecule: MoleculeFactory<TProps, TReturn>,
   props?: TProps
 ): TReturn
 ```
 
-Mounts a logic factory and returns its public API. The logic's scope is bound to the component lifecycle: `onMount` callbacks run after the component mounts, and `onUnmount` callbacks run before it unmounts.
+Mounts a molecule factory and returns its public API. The molecule's scope is bound to the component lifecycle: `onMount` callbacks run after the component mounts, and `onUnmount` callbacks run before it unmounts.
 
 ## Testing
 
 ```tsx
 // tests/Counter.test.tsx
 import { render, screen, fireEvent } from "@testing-library/react";
-import { cleanupLogics } from "@sigrea/core";
 import { Counter } from "../components/Counter";
-
-afterEach(() => cleanupLogics());
 
 it("increments and displays the updated count", () => {
   render(<Counter initialCount={10} />);
