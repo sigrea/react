@@ -7,13 +7,14 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@sigrea/core':
+        specifier: ^0.3.1
+        version: 0.3.1
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.4
         version: 1.9.4
-      '@sigrea/core':
-        specifier: ^0.3.1
-        version: 0.3.1
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.2
@@ -723,6 +724,10 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@sigrea/core@0.3.1':
+    resolution: {integrity: sha512-pT5QOKRXx2zR4XD5U/9O+0wkb5pvc7DnKHo1E+Sr/Q6+XM/YOpt+IQh9ObFSpX6FzM6IVL5vzq1I2FYtyOS73g==}
+    engines: {node: '>=20'}
+
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
 
@@ -807,6 +812,9 @@ packages:
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
+
+  alien-signals@3.1.1:
+    resolution: {integrity: sha512-ogkIWbVrLwKtHY6oOAXaYkAxP+cTH7V5FZ5+Tm4NZFd8VDZ6uNMDrfzqctTZ42eTMCSR3ne3otpcxmqSnFfPYA==}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -2561,6 +2569,10 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.52.5':
     optional: true
 
+  '@sigrea/core@0.3.1':
+    dependencies:
+      alien-signals: 3.1.1
+
   '@types/babel__core@7.20.5':
     dependencies:
       '@babel/parser': 7.28.5
@@ -2677,6 +2689,8 @@ snapshots:
   acorn@8.15.0: {}
 
   agent-base@7.1.4: {}
+
+  alien-signals@3.1.1: {}
 
   ansi-regex@5.0.1: {}
 
