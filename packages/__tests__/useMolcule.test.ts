@@ -2,16 +2,16 @@ import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-	type LogicInstance,
-	cleanupLogics,
-	defineLogic,
+	type MoleculeInstance,
+	disposeTrackedMolecules,
+	molecule,
 	onUnmount,
 } from "@sigrea/core";
 
-import { useLogic } from "../useLogic";
+import { useMolcule } from "../useMolcule";
 import { createTestRoot, flushMicrotasks } from "./testUtils";
 
-describe("useLogic", () => {
+describe("useMolcule", () => {
 	let root: ReturnType<typeof createTestRoot>;
 
 	beforeEach(() => {
@@ -20,20 +20,20 @@ describe("useLogic", () => {
 
 	afterEach(async () => {
 		await root.unmount();
-		cleanupLogics();
+		disposeTrackedMolecules();
 	});
 
 	it("does not dispose when re-rendered with identical props", async () => {
 		const cleanup = vi.fn();
-		const logic = defineLogic<number>()((value) => {
+		const counterMolcule = molecule((value: number) => {
 			onUnmount(() => cleanup(value));
 			return { value };
 		});
 
-		const observed: Array<LogicInstance<{ value: number }>> = [];
+		const observed: Array<MoleculeInstance<{ value: number }>> = [];
 
 		function TestComponent({ value }: { value: number }) {
-			const instance = useLogic(logic, value);
+			const instance = useMolcule(counterMolcule, value);
 			observed.push(instance);
 			return null;
 		}
@@ -54,17 +54,17 @@ describe("useLogic", () => {
 		expect(cleanup).toHaveBeenCalledWith(1);
 	});
 
-	it("mounts logic and cleans up on unmount", async () => {
+	it("mounts molecule and cleans up on unmount", async () => {
 		const cleanup = vi.fn();
-		const makeLogic = defineLogic<number>()((value) => {
+		const makeMolcule = molecule((value: number) => {
 			onUnmount(() => cleanup(value));
 			return { value };
 		});
 
-		const observed: Array<LogicInstance<{ value: number }>> = [];
+		const observed: Array<MoleculeInstance<{ value: number }>> = [];
 
 		function TestComponent() {
-			const instance = useLogic(makeLogic, 1);
+			const instance = useMolcule(makeMolcule, 1);
 			observed.push(instance);
 			return null;
 		}
@@ -86,14 +86,14 @@ describe("useLogic", () => {
 		const mounts = vi.fn();
 		const cleanups = vi.fn();
 
-		const logic = defineLogic<number>()((value) => {
+		const counterMolcule = molecule((value: number) => {
 			mounts(value);
 			onUnmount(() => cleanups(value));
 			return {};
 		});
 
 		function TestComponent({ value }: { value: number }) {
-			useLogic(logic, value);
+			useMolcule(counterMolcule, value);
 			return null;
 		}
 

@@ -1,45 +1,51 @@
 import { useEffect, useRef } from "react";
 
-import type { LogicArgs, LogicFunction, LogicInstance } from "@sigrea/core";
-import { cleanupLogic, mountLogic } from "@sigrea/core";
+import type {
+	MoleculeArgs,
+	MoleculeFactory,
+	MoleculeInstance,
+} from "@sigrea/core";
+import { disposeMolecule } from "@sigrea/core";
 
-interface LogicState<TReturn extends object, TProps> {
-	instance: LogicInstance<TReturn>;
-	logic: LogicFunction<TReturn, TProps>;
+interface MoleculeState<TReturn extends object, TProps> {
+	instance: MoleculeInstance<TReturn>;
+	molecule: MoleculeFactory<TReturn, TProps>;
 	props: TProps | undefined;
 	subscribers: number;
 	disposed: boolean;
 	pendingDisposeToken: symbol | null;
 }
 
-export function useLogic<TReturn extends object, TProps = void>(
-	logic: LogicFunction<TReturn, TProps>,
-	...args: LogicArgs<TProps>
-): LogicInstance<TReturn> {
+export function useMolcule<TReturn extends object, TProps = void>(
+	molecule: MoleculeFactory<TReturn, TProps>,
+	...args: MoleculeArgs<TProps>
+): MoleculeInstance<TReturn> {
 	const props = args.length === 0 ? undefined : (args[0] as TProps | undefined);
-	const stateRef = useRef<LogicState<TReturn, TProps> | undefined>(undefined);
+	const stateRef = useRef<MoleculeState<TReturn, TProps> | undefined>(
+		undefined,
+	);
 
 	const currentState = stateRef.current;
 	const shouldRemount =
 		currentState === undefined ||
-		currentState.logic !== logic ||
+		currentState.molecule !== molecule ||
 		!Object.is(currentState.props, props);
 
 	if (shouldRemount) {
 		if (currentState !== undefined) {
 			currentState.pendingDisposeToken = null;
-			cleanupLogic(currentState.instance);
+			disposeMolecule(currentState.instance);
 			stateRef.current = undefined;
 		}
 
-		const logicArgs =
+		const moleculeArgs =
 			props === undefined
-				? ([] as LogicArgs<TProps>)
-				: ([props] as unknown as LogicArgs<TProps>);
+				? ([] as MoleculeArgs<TProps>)
+				: ([props] as unknown as MoleculeArgs<TProps>);
 
 		stateRef.current = {
-			instance: mountLogic(logic, ...logicArgs),
-			logic,
+			instance: molecule(...moleculeArgs),
+			molecule,
 			props,
 			subscribers: 0,
 			disposed: false,
@@ -49,7 +55,9 @@ export function useLogic<TReturn extends object, TProps = void>(
 
 	const state = stateRef.current;
 	if (state === undefined) {
-		throw new Error("useLogic failed to mount the requested logic instance.");
+		throw new Error(
+			"useMolcule failed to mount the requested molecule instance.",
+		);
 	}
 
 	const instance = state.instance;
@@ -69,7 +77,7 @@ export function useLogic<TReturn extends object, TProps = void>(
 		return () => {
 			const latest = stateRef.current;
 			if (latest === undefined || latest.instance !== instance) {
-				cleanupLogic(instance);
+				disposeMolecule(instance);
 				return;
 			}
 
@@ -97,7 +105,7 @@ export function useLogic<TReturn extends object, TProps = void>(
 					current.disposed = true;
 					current.pendingDisposeToken = null;
 					stateRef.current = undefined;
-					cleanupLogic(instance);
+					disposeMolecule(instance);
 				});
 			}
 		};
