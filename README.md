@@ -68,7 +68,7 @@ const CounterMolecule = molecule((props: { initialCount: number }) => {
 });
 
 export function Counter(props: { initialCount: number }) {
-  const counter = useMolcule(CounterMolcule, props);
+  const counter = useMolcule(CounterMolecule, props);
   const value = useSignal(counter.count);
 
   return (
