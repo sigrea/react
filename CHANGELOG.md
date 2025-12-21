@@ -1,5 +1,23 @@
 # @sigrea/react
 
+## v0.4.0
+
+[compare changes](https://github.com/sigrea/react/compare/v0.3.1...v0.4.0)
+
+### 🩹 Fixes
+
+- Correct useMolecule spelling in React adapter ([744e506](https://github.com/sigrea/react/commit/744e506))
+- Correct useMolecule spelling in React adapter ([#15](https://github.com/sigrea/react/pull/15))
+
+### 🎨 Styles
+
+- Format package.json ([1bafcd2](https://github.com/sigrea/react/commit/1bafcd2))
+
+### ❤️ Contributors
+
+- Aose ([@aose-yuu](https://github.com/aose-yuu))
+- Aose-yuu <aose.developer@gmail.com>
+
 ## v0.3.1
 
 [compare changes](https://github.com/sigrea/react/compare/v0.3.0...v0.3.1)
