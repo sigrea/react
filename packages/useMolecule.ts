@@ -16,7 +16,7 @@ interface MoleculeState<TReturn extends object, TProps> {
 	pendingDisposeToken: symbol | null;
 }
 
-export function useMolcule<TReturn extends object, TProps = void>(
+export function useMolecule<TReturn extends object, TProps = void>(
 	molecule: MoleculeFactory<TReturn, TProps>,
 	...args: MoleculeArgs<TProps>
 ): MoleculeInstance<TReturn> {
@@ -56,7 +56,7 @@ export function useMolcule<TReturn extends object, TProps = void>(
 	const state = stateRef.current;
 	if (state === undefined) {
 		throw new Error(
-			"useMolcule failed to mount the requested molecule instance.",
+			"useMolecule failed to mount the requested molecule instance.",
 		);
 	}
 

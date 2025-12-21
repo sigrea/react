@@ -8,10 +8,10 @@ import {
 	onUnmount,
 } from "@sigrea/core";
 
-import { useMolcule } from "../useMolcule";
+import { useMolecule } from "../useMolecule";
 import { createTestRoot, flushMicrotasks } from "./testUtils";
 
-describe("useMolcule", () => {
+describe("useMolecule", () => {
 	let root: ReturnType<typeof createTestRoot>;
 
 	beforeEach(() => {
@@ -25,7 +25,7 @@ describe("useMolcule", () => {
 
 	it("does not dispose when re-rendered with identical props", async () => {
 		const cleanup = vi.fn();
-		const counterMolcule = molecule((value: number) => {
+		const counterMolecule = molecule((value: number) => {
 			onUnmount(() => cleanup(value));
 			return { value };
 		});
@@ -33,7 +33,7 @@ describe("useMolcule", () => {
 		const observed: Array<MoleculeInstance<{ value: number }>> = [];
 
 		function TestComponent({ value }: { value: number }) {
-			const instance = useMolcule(counterMolcule, value);
+			const instance = useMolecule(counterMolecule, value);
 			observed.push(instance);
 			return null;
 		}
@@ -56,7 +56,7 @@ describe("useMolcule", () => {
 
 	it("mounts molecule and cleans up on unmount", async () => {
 		const cleanup = vi.fn();
-		const makeMolcule = molecule((value: number) => {
+		const makeMolecule = molecule((value: number) => {
 			onUnmount(() => cleanup(value));
 			return { value };
 		});
@@ -64,7 +64,7 @@ describe("useMolcule", () => {
 		const observed: Array<MoleculeInstance<{ value: number }>> = [];
 
 		function TestComponent() {
-			const instance = useMolcule(makeMolcule, 1);
+			const instance = useMolecule(makeMolecule, 1);
 			observed.push(instance);
 			return null;
 		}
@@ -86,14 +86,14 @@ describe("useMolcule", () => {
 		const mounts = vi.fn();
 		const cleanups = vi.fn();
 
-		const counterMolcule = molecule((value: number) => {
+		const counterMolecule = molecule((value: number) => {
 			mounts(value);
 			onUnmount(() => cleanups(value));
 			return {};
 		});
 
 		function TestComponent({ value }: { value: number }) {
-			useMolcule(counterMolcule, value);
+			useMolecule(counterMolecule, value);
 			return null;
 		}
 

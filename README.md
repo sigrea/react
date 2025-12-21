@@ -5,7 +5,7 @@
 - **Signal subscriptions.** `useSignal` subscribes to signals and computed values, triggering re-renders when they change.
 - **Computed subscriptions.** `useComputed` subscribes to computed values and memoizes them per component instance.
 - **Deep signal subscriptions.** `useDeepSignal` subscribes to deep signal objects and exposes them for direct mutation.
-- **Molecule lifecycles.** `useMolcule` mounts molecule factories and binds their lifecycles to React components.
+- **Molecule lifecycles.** `useMolecule` mounts molecule factories and binds their lifecycles to React components.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@
   - [useSignal](#usesignal)
   - [useComputed](#usecomputed)
   - [useDeepSignal](#usedeepsignal)
-  - [useMolcule](#usemolcule)
+  - [useMolecule](#usemolecule)
 - [Testing](#testing)
 - [Handling Scope Cleanup Errors](#handling-scope-cleanup-errors)
 - [Development](#development)
@@ -52,7 +52,7 @@ export function CounterLabel() {
 
 ```tsx
 import { molecule, signal } from "@sigrea/core";
-import { useMolcule, useSignal } from "@sigrea/react";
+import { useMolecule, useSignal } from "@sigrea/react";
 
 const CounterMolecule = molecule((props: { initialCount: number }) => {
   const count = signal(props.initialCount);
@@ -69,7 +69,7 @@ const CounterMolecule = molecule((props: { initialCount: number }) => {
 });
 
 export function Counter(props: { initialCount: number }) {
-  const counter = useMolcule(CounterMolecule, props);
+  const counter = useMolecule(CounterMolecule, props);
   const value = useSignal(counter.count);
 
   return (
@@ -133,10 +133,10 @@ function useDeepSignal<T extends object>(signal: DeepSignal<T>): T
 
 Exposes a deep signal object for direct mutation within the component. Updates to nested properties trigger re-renders, and the subscription is cleaned up when the component unmounts.
 
-### useMolcule
+### useMolecule
 
 ```tsx
-function useMolcule<TProps, TReturn>(
+function useMolecule<TProps, TReturn>(
   molecule: MoleculeFactory<TProps, TReturn>,
   props?: TProps
 ): TReturn

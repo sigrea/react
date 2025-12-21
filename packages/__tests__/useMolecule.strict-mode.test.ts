@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { disposeTrackedMolecules, molecule, onUnmount } from "@sigrea/core";
 
-import { useMolcule } from "../useMolcule";
+import { useMolecule } from "../useMolecule";
 import { createTestRoot, flushMicrotasks } from "./testUtils";
 
-describe("useMolcule in StrictMode", () => {
+describe("useMolecule in StrictMode", () => {
 	let root: ReturnType<typeof createTestRoot>;
 
 	beforeEach(() => {
@@ -20,13 +20,13 @@ describe("useMolcule in StrictMode", () => {
 
 	it("keeps the molecule instance alive across StrictMode effect replays", async () => {
 		const cleanup = vi.fn();
-		const counterMolcule = molecule((value: number) => {
+		const counterMolecule = molecule((value: number) => {
 			onUnmount(() => cleanup(value));
 			return { value };
 		});
 
 		function TestComponent() {
-			useMolcule(counterMolcule, 1);
+			useMolecule(counterMolecule, 1);
 			return null;
 		}
 
