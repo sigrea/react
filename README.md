@@ -20,6 +20,7 @@
   - [useDeepSignal](#usedeepsignal)
   - [useMolcule](#usemolcule)
 - [Testing](#testing)
+- [Handling Scope Cleanup Errors](#handling-scope-cleanup-errors)
 - [Development](#development)
 - [License](#license)
 
@@ -68,7 +69,7 @@ const CounterMolecule = molecule((props: { initialCount: number }) => {
 });
 
 export function Counter(props: { initialCount: number }) {
-  const counter = useMolcule(CounterMolcule, props);
+  const counter = useMolcule(CounterMolecule, props);
   const value = useSignal(counter.count);
 
   return (
@@ -160,6 +161,32 @@ it("increments and displays the updated count", () => {
 });
 ```
 
+## Handling Scope Cleanup Errors
+
+For global error handling configuration, see [@sigrea/core - Handling Scope Cleanup Errors](https://github.com/sigrea/core#handling-scope-cleanup-errors).
+
+In React apps, configure the handler in your application entry point before rendering:
+
+```tsx
+// index.tsx or main.tsx
+import { setScopeCleanupErrorHandler } from "@sigrea/core";
+import { createRoot } from "react-dom/client";
+import { App } from "./App";
+
+setScopeCleanupErrorHandler((error, context) => {
+  console.error(`Cleanup failed:`, error);
+
+  // Forward to monitoring service
+  if (typeof Sentry !== "undefined") {
+    Sentry.captureException(error, {
+      tags: { scopeId: context.scopeId, phase: context.phase },
+    });
+  }
+});
+
+createRoot(document.getElementById("root")!).render(<App />);
+```
+
 ## Development
 
 This repo targets Node.js 20 or later.
@@ -174,8 +201,13 @@ You can also run pnpm scripts directly:
 
 - `pnpm install` — install dependencies.
 - `pnpm test` — run the Vitest suite once (no watch).
+- `pnpm typecheck` — run TypeScript type checking.
+- `pnpm test:coverage` — collect coverage.
 - `pnpm build` — compile via unbuild to produce dual CJS/ESM bundles.
+- `pnpm cicheck` — run CI checks locally.
 - `pnpm dev` — launch the playground counter demo.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for workflow details.
 
 ## License
 
