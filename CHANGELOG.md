@@ -1,5 +1,24 @@
 # @sigrea/react
 
+## v0.3.1
+
+[compare changes](https://github.com/sigrea/react/compare/v0.3.0...v0.3.1)
+
+### 📖 Documentation
+
+- Enhance documentation and project setup ([#13](https://github.com/sigrea/react/pull/13))
+
+### 🏡 Chore
+
+- Add mise tasks ([#12](https://github.com/sigrea/react/pull/12))
+- Bump core peer dependency to 0.4.3 ([088395d](https://github.com/sigrea/react/commit/088395d))
+- Bump core to 0.4.3 ([#14](https://github.com/sigrea/react/pull/14))
+
+### ❤️ Contributors
+
+- Aose ([@aose-yuu](https://github.com/aose-yuu))
+- Aose-yuu <aose.developer@gmail.com>
+
 ## v0.3.0
 
 [compare changes](https://github.com/sigrea/react/compare/v0.2.1...v0.3.0)
