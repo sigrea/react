@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { useMolcule, useSignal } from "@sigrea/react";
+import { useMolecule, useSignal } from "@sigrea/react";
 import { CounterMolecule, type CounterProps } from "./CounterMolecule";
 
 export function Counter(props: CounterProps) {
@@ -10,7 +10,7 @@ export function Counter(props: CounterProps) {
 		[initialCount, step],
 	);
 
-	const counter = useMolcule(CounterMolecule, moleculeProps);
+	const counter = useMolecule(CounterMolecule, moleculeProps);
 	const count = useSignal(counter.count);
 
 	return (
