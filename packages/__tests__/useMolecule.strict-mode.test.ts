@@ -20,13 +20,13 @@ describe("useMolecule in StrictMode", () => {
 
 	it("keeps the molecule instance alive across StrictMode effect replays", async () => {
 		const cleanup = vi.fn();
-		const counterMolecule = molecule((value: number) => {
-			onUnmount(() => cleanup(value));
-			return { value };
+		const counterMolecule = molecule((props: { value: number }) => {
+			onUnmount(() => cleanup(props.value));
+			return { value: props.value };
 		});
 
 		function TestComponent() {
-			useMolecule(counterMolecule, 1);
+			useMolecule(counterMolecule, { value: 1 });
 			return null;
 		}
 

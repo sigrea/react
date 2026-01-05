@@ -7,29 +7,31 @@ import type {
 } from "@sigrea/core";
 import { disposeMolecule } from "@sigrea/core";
 
-interface MoleculeState<TReturn extends object, TProps> {
+interface MoleculeState<TReturn extends object, TProps extends object | void> {
 	instance: MoleculeInstance<TReturn>;
 	molecule: MoleculeFactory<TReturn, TProps>;
-	props: TProps | undefined;
 	subscribers: number;
 	disposed: boolean;
 	pendingDisposeToken: symbol | null;
 }
 
-export function useMolecule<TReturn extends object, TProps = void>(
+export function useMolecule<TReturn extends object, TProps extends object | void = void>(
 	molecule: MoleculeFactory<TReturn, TProps>,
 	...args: MoleculeArgs<TProps>
 ): MoleculeInstance<TReturn> {
 	const props = args.length === 0 ? undefined : (args[0] as TProps | undefined);
+
+	if (props !== undefined && (typeof props !== "object" || props === null)) {
+		throw new TypeError("useMolecule props must be an object.");
+	}
+
 	const stateRef = useRef<MoleculeState<TReturn, TProps> | undefined>(
 		undefined,
 	);
 
 	const currentState = stateRef.current;
 	const shouldRemount =
-		currentState === undefined ||
-		currentState.molecule !== molecule ||
-		!Object.is(currentState.props, props);
+		currentState === undefined || currentState.molecule !== molecule;
 
 	if (shouldRemount) {
 		if (currentState !== undefined) {
@@ -38,15 +40,17 @@ export function useMolecule<TReturn extends object, TProps = void>(
 			stateRef.current = undefined;
 		}
 
+		const snapshot =
+			props === undefined ? undefined : ({ ...props } as Exclude<TProps, void>);
+
 		const moleculeArgs =
-			props === undefined
+			snapshot === undefined
 				? ([] as MoleculeArgs<TProps>)
-				: ([props] as unknown as MoleculeArgs<TProps>);
+				: ([snapshot as TProps] as MoleculeArgs<TProps>);
 
 		stateRef.current = {
 			instance: molecule(...moleculeArgs),
 			molecule,
-			props,
 			subscribers: 0,
 			disposed: false,
 			pendingDisposeToken: null,
