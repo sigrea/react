@@ -2,6 +2,8 @@ import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+	type MoleculeInstance,
+	type Signal,
 	disposeTrackedMolecules,
 	molecule,
 	onMount,
@@ -78,7 +80,6 @@ describe("useMolecule mount lifecycle", () => {
 
 	it("executes watch callback when signal changes after mount", async () => {
 		const watchCallback = vi.fn();
-		let instance: { count: { value: number } } | null = null;
 
 		const testMolecule = molecule(() => {
 			const count = signal(0);
@@ -90,8 +91,11 @@ describe("useMolecule mount lifecycle", () => {
 			return { count };
 		});
 
+		const observed: Array<MoleculeInstance<{ count: Signal<number> }>> = [];
+
 		function TestComponent() {
-			instance = useMolecule(testMolecule);
+			const instance = useMolecule(testMolecule);
+			observed.push(instance);
 			return null;
 		}
 
@@ -99,12 +103,9 @@ describe("useMolecule mount lifecycle", () => {
 		await flushMicrotasks(2);
 
 		expect(watchCallback).not.toHaveBeenCalled();
+		expect(observed).toHaveLength(1);
 
-		if (instance === null) {
-			throw new Error("Failed to capture instance");
-		}
-
-		instance.count.value = 42;
+		observed[0].count.value = 42;
 		await flushMicrotasks(2);
 
 		expect(watchCallback).toHaveBeenCalledTimes(1);
