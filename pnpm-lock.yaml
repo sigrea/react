@@ -12,8 +12,8 @@ importers:
         specifier: 1.9.4
         version: 1.9.4
       '@sigrea/core':
-        specifier: ^0.4.4
-        version: 0.4.4
+        specifier: ^0.5.0
+        version: 0.5.0
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.2
@@ -723,8 +723,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@sigrea/core@0.4.4':
-    resolution: {integrity: sha512-iRFLiraUtrIjQAcoT6JmIxQBzva1ewwEpfnVD7iWTYLspfaGSq2h0VW7SKqY9H12CdmSWG5SndxD4m9ayEkTMA==}
+  '@sigrea/core@0.5.0':
+    resolution: {integrity: sha512-wDZSwlmjwFLK8Zofd9jIWEMUNEyTxAhlAiuktoZWnyuw/3m5cClt79tFggk4bCzsLTN/d/fSoU4lvPew2p72iA==}
     engines: {node: '>=20'}
 
   '@types/babel__core@7.20.5':
@@ -2568,7 +2568,7 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.52.5':
     optional: true
 
-  '@sigrea/core@0.4.4':
+  '@sigrea/core@0.5.0':
     dependencies:
       alien-signals: 3.1.1
 
