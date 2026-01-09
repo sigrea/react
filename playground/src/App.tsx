@@ -32,9 +32,7 @@ export function App() {
 								disabled={showCounter}
 								value={initialCount}
 								onChange={(event) =>
-									setInitialCount(
-										Number.parseInt(event.target.value, 10) || 0,
-									)
+									setInitialCount(Number.parseInt(event.target.value, 10) || 0)
 								}
 							/>
 						</label>
@@ -58,10 +56,7 @@ export function App() {
 
 				<section className="playground__canvas">
 					{showCounter ? (
-						<Counter
-							initialCount={initialCount}
-							initialStep={initialStep}
-						/>
+						<Counter initialCount={initialCount} initialStep={initialStep} />
 					) : (
 						<div className="playground__placeholder">
 							Counter is currently unmounted.
