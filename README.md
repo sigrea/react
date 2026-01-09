@@ -51,32 +51,50 @@ export function CounterLabel() {
 ### Bridge Framework-Agnostic Molecules
 
 ```tsx
-import { molecule, signal } from "@sigrea/core";
+import { molecule, readonly, signal } from "@sigrea/core";
 import { useMolecule, useSignal } from "@sigrea/react";
 
-const CounterMolecule = molecule((props: { initialCount: number }) => {
+type CounterProps = {
+  initialCount: number;
+  initialStep: number;
+};
+
+const CounterMolecule = molecule((props: CounterProps) => {
   const count = signal(props.initialCount);
+  const step = signal(props.initialStep);
 
-  const increment = () => {
-    count.value += 1;
-  };
+  function setStep(next: number) {
+    step.value = next;
+  }
 
-  const reset = () => {
+  function increment() {
+    count.value += step.value;
+  }
+
+  function reset() {
     count.value = props.initialCount;
-  };
+  }
 
-  return { count, increment, reset };
+  return {
+    count: readonly(count),
+    step: readonly(step),
+    setStep,
+    increment,
+    reset,
+  };
 });
 
-export function Counter(props: { initialCount: number }) {
+export function Counter(props: CounterProps) {
   const counter = useMolecule(CounterMolecule, props);
-  const value = useSignal(counter.count);
+  const count = useSignal(counter.count);
+  const step = useSignal(counter.step);
 
   return (
     <div>
-      <span>{value}</span>
+      <span>{count}</span>
       <button onClick={counter.increment}>Increment</button>
       <button onClick={counter.reset}>Reset</button>
+      <button onClick={() => counter.setStep(step + 1)}>Step +</button>
     </div>
   );
 }
@@ -88,7 +106,7 @@ export function Counter(props: { initialCount: number }) {
 import { deepSignal } from "@sigrea/core";
 import { useDeepSignal } from "@sigrea/react";
 
-const form = deepSignal({ name: "Sigrea" });
+const form = deepSignal({ name: "Mendako" });
 
 export function ProfileForm() {
   const state = useDeepSignal(form);
@@ -136,13 +154,26 @@ Exposes a deep signal object for direct mutation within the component. Updates t
 ### useMolecule
 
 ```tsx
-function useMolecule<TProps, TReturn>(
-  molecule: MoleculeFactory<TProps, TReturn>,
-  props?: TProps
-): TReturn
+function useMolecule<TReturn extends object, TProps extends object | void = void>(
+  molecule: MoleculeFactory<TReturn, TProps>,
+  ...args: MoleculeArgs<TProps>
+): MoleculeInstance<TReturn>
 ```
 
-Mounts a molecule factory and returns its public API. The molecule's scope is bound to the component lifecycle: `onMount` callbacks run after the component mounts, and `onUnmount` callbacks run before it unmounts.
+Mounts a molecule factory and returns its MoleculeInstance. The molecule's scope is bound to the component lifecycle: `onMount` callbacks run after the component mounts, and `onUnmount` callbacks run before it unmounts.
+
+**Lifecycle Timing**
+
+Molecule lifecycles are bound to React's layout effects for precise timing control:
+
+- In **browser environments**, molecule mounting happens synchronously after DOM updates but before paint (via `useLayoutEffect`). This matches Vue 3's `onMounted` timing, ensuring consistent behavior across frameworks.
+- In **SSR environments**, lifecycle callbacks are deferred to `useEffect` to avoid hydration warnings while maintaining the same cleanup guarantees.
+
+This design ensures that `onMount` callbacks and `watch` effects activate at the right moment—early enough to set up subscriptions before the first paint, yet safely after the component has committed to the DOM.
+
+**Props Handling**
+
+Props are treated as an initial snapshot. Updating component props does not recreate the molecule instance or update the snapshot; model dynamic values via signals or explicit molecule methods (for example, `setStep`).
 
 ## Testing
 

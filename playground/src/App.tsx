@@ -1,24 +1,11 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { Counter } from "./Counter";
 
 export function App() {
 	const [showCounter, setShowCounter] = useState(true);
 	const [initialCount, setInitialCount] = useState(0);
-	const [step, setStep] = useState(1);
-
-	const counterKey = useMemo(
-		() => `${initialCount}:${step}:${showCounter ? "on" : "off"}`,
-		[initialCount, step, showCounter],
-	);
-
-	const handleInitialChange = (value: number) => {
-		setInitialCount(value);
-	};
-
-	const handleStepChange = (value: number) => {
-		setStep(value <= 0 ? 1 : value);
-	};
+	const [initialStep, setInitialStep] = useState(1);
 
 	return (
 		<div className="app">
@@ -42,22 +29,25 @@ export function App() {
 							<span>Initial count</span>
 							<input
 								type="number"
+								disabled={showCounter}
 								value={initialCount}
 								onChange={(event) =>
-									handleInitialChange(
-										Number.parseInt(event.target.value, 10) || 0,
-									)
+									setInitialCount(Number.parseInt(event.target.value, 10) || 0)
 								}
 							/>
 						</label>
 						<label className="playground__input">
-							<span>Step</span>
+							<span>Initial step</span>
 							<input
 								type="number"
 								min={1}
-								value={step}
+								disabled={showCounter}
+								value={initialStep}
 								onChange={(event) =>
-									handleStepChange(Number.parseInt(event.target.value, 10) || 1)
+									setInitialStep(() => {
+										const next = Number.parseInt(event.target.value, 10) || 1;
+										return next <= 0 ? 1 : next;
+									})
 								}
 							/>
 						</label>
@@ -66,7 +56,7 @@ export function App() {
 
 				<section className="playground__canvas">
 					{showCounter ? (
-						<Counter key={counterKey} initialCount={initialCount} step={step} />
+						<Counter initialCount={initialCount} initialStep={initialStep} />
 					) : (
 						<div className="playground__placeholder">
 							Counter is currently unmounted.
