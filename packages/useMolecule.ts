@@ -5,7 +5,7 @@ import type {
 	MoleculeFactory,
 	MoleculeInstance,
 } from "@sigrea/core";
-import { disposeMolecule } from "@sigrea/core";
+import { disposeMolecule, mountMolecule, unmountMolecule } from "@sigrea/core";
 
 interface MoleculeState<TReturn extends object, TProps extends object | void> {
 	instance: MoleculeInstance<TReturn>;
@@ -15,7 +15,10 @@ interface MoleculeState<TReturn extends object, TProps extends object | void> {
 	pendingDisposeToken: symbol | null;
 }
 
-export function useMolecule<TReturn extends object, TProps extends object | void = void>(
+export function useMolecule<
+	TReturn extends object,
+	TProps extends object | void = void,
+>(
 	molecule: MoleculeFactory<TReturn, TProps>,
 	...args: MoleculeArgs<TProps>
 ): MoleculeInstance<TReturn> {
@@ -77,6 +80,9 @@ export function useMolecule<TReturn extends object, TProps extends object | void
 		}
 
 		state.subscribers += 1;
+		if (state.subscribers === 1) {
+			mountMolecule(instance);
+		}
 
 		return () => {
 			const latest = stateRef.current;
@@ -91,6 +97,8 @@ export function useMolecule<TReturn extends object, TProps extends object | void
 			}
 
 			if (!latest.disposed && latest.subscribers === 0) {
+				unmountMolecule(instance);
+
 				const token = Symbol("pending-dispose");
 				latest.pendingDisposeToken = token;
 

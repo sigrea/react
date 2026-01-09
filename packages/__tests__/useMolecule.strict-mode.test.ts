@@ -1,7 +1,7 @@
 import { StrictMode, createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { disposeTrackedMolecules, molecule, onUnmount } from "@sigrea/core";
+import { disposeTrackedMolecules, molecule, onDispose } from "@sigrea/core";
 
 import { useMolecule } from "../useMolecule";
 import { createTestRoot, flushMicrotasks } from "./testUtils";
@@ -21,7 +21,7 @@ describe("useMolecule in StrictMode", () => {
 	it("keeps the molecule instance alive across StrictMode effect replays", async () => {
 		const cleanup = vi.fn();
 		const counterMolecule = molecule((props: { value: number }) => {
-			onUnmount(() => cleanup(props.value));
+			onDispose(() => cleanup(props.value));
 			return { value: props.value };
 		});
 
