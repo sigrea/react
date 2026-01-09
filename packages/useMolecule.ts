@@ -1,4 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
+
+const useIsomorphicLayoutEffect =
+	typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 import type {
 	MoleculeArgs,
@@ -69,7 +72,7 @@ export function useMolecule<
 
 	const instance = state.instance;
 
-	useEffect(() => {
+	useIsomorphicLayoutEffect(() => {
 		const state = stateRef.current;
 		if (state === undefined || state.instance !== instance) {
 			return () => {};
