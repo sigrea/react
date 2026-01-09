@@ -1,5 +1,22 @@
 # @sigrea/react
 
+## v0.5.0
+
+[compare changes](https://github.com/sigrea/react/compare/v0.4.0...v0.5.0)
+
+### 🚀 Enhancements
+
+- Integrate @sigrea/core v0.5.0 mount lifecycle ([#16](https://github.com/sigrea/react/pull/16))
+
+### 🏡 Chore
+
+- Add release_major task to mise.toml ([b319aaa](https://github.com/sigrea/react/commit/b319aaa))
+
+### ❤️ Contributors
+
+- Aose-yuu <aose.developer@gmail.com>
+- Aose ([@aose-yuu](https://github.com/aose-yuu))
+
 ## v0.4.0
 
 [compare changes](https://github.com/sigrea/react/compare/v0.3.1...v0.4.0)
