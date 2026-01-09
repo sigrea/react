@@ -106,7 +106,7 @@ export function Counter(props: CounterProps) {
 import { deepSignal } from "@sigrea/core";
 import { useDeepSignal } from "@sigrea/react";
 
-const form = deepSignal({ name: "Sigrea" });
+const form = deepSignal({ name: "Mendako" });
 
 export function ProfileForm() {
   const state = useDeepSignal(form);
@@ -161,6 +161,17 @@ function useMolecule<TReturn extends object, TProps extends object | void = void
 ```
 
 Mounts a molecule factory and returns its MoleculeInstance. The molecule's scope is bound to the component lifecycle: `onMount` callbacks run after the component mounts, and `onUnmount` callbacks run before it unmounts.
+
+**Lifecycle Timing**
+
+Molecule lifecycles are bound to React's layout effects for precise timing control:
+
+- In **browser environments**, molecule mounting happens synchronously after DOM updates but before paint (via `useLayoutEffect`). This matches Vue 3's `onMounted` timing, ensuring consistent behavior across frameworks.
+- In **SSR environments**, lifecycle callbacks are deferred to `useEffect` to avoid hydration warnings while maintaining the same cleanup guarantees.
+
+This design ensures that `onMount` callbacks and `watch` effects activate at the right moment—early enough to set up subscriptions before the first paint, yet safely after the component has committed to the DOM.
+
+**Props Handling**
 
 Props are treated as an initial snapshot. Updating component props does not recreate the molecule instance or update the snapshot; model dynamic values via signals or explicit molecule methods (for example, `setStep`).
 
