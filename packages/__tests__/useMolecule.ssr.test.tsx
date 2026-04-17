@@ -2,7 +2,7 @@
 
 // @ts-expect-error This node-only test imports a built-in module without node types in the package tsconfig.
 import { PassThrough } from "node:stream";
-import { createElement } from "react";
+import { Suspense, createElement, use } from "react";
 import {
 	renderToPipeableStream,
 	renderToReadableStream,
@@ -51,8 +51,7 @@ async function renderPipeable(element: ReturnType<typeof createElement>) {
 	return html;
 }
 
-async function renderReadable(element: ReturnType<typeof createElement>) {
-	const stream = await renderToReadableStream(element);
+async function readReadableStream(stream: ReadableStream<Uint8Array>) {
 	const reader = stream.getReader();
 	const decoder = new TextDecoder();
 	let html = "";
@@ -67,6 +66,73 @@ async function renderReadable(element: ReturnType<typeof createElement>) {
 
 	html += decoder.decode();
 	return html;
+}
+
+async function renderReadable(element: ReturnType<typeof createElement>) {
+	const stream = await renderToReadableStream(element);
+	return readReadableStream(stream);
+}
+
+function createDeferred<T>() {
+	let resolve!: (value: T) => void;
+	const promise = new Promise<T>((nextResolve) => {
+		resolve = nextResolve;
+	});
+
+	return { promise, resolve };
+}
+
+function createSuspenseRetryFixture() {
+	const metrics = {
+		created: 0,
+		disposed: 0,
+		mounted: 0,
+		watchRuns: 0,
+		effectRuns: 0,
+		renderAttempts: 0,
+	};
+	const deferred = createDeferred<string>();
+	const DemoMolecule = molecule(() => {
+		metrics.created += 1;
+		const count = signal(1);
+
+		onMount(() => {
+			metrics.mounted += 1;
+		});
+		onDispose(() => {
+			metrics.disposed += 1;
+		});
+		watch(
+			count,
+			() => {
+				metrics.watchRuns += 1;
+			},
+			{ immediate: true },
+		);
+		watchEffect(() => {
+			count.value;
+			metrics.effectRuns += 1;
+		});
+
+		return { count };
+	});
+
+	function TestComponent() {
+		metrics.renderAttempts += 1;
+		const instance = useMolecule(DemoMolecule);
+		const suffix = use(deferred.promise);
+		return createElement("span", null, `${instance.count.value}:${suffix}`);
+	}
+
+	return {
+		metrics,
+		resolve: deferred.resolve,
+		element: createElement(
+			Suspense,
+			{ fallback: createElement("div", null, "loading") },
+			createElement(TestComponent),
+		),
+	};
 }
 
 describe("useMolecule on the server", () => {
@@ -258,5 +324,73 @@ describe("useMolecule on the server", () => {
 		await flushMicrotasks(2);
 
 		expect(disposed).toHaveBeenCalledTimes(1);
+	});
+
+	it("keeps Suspense retries safe for renderToPipeableStream", async () => {
+		const fixture = createSuspenseRetryFixture();
+		const stream = new PassThrough();
+		let html = "";
+		let disposedAtShell = -1;
+		stream.on("data", (chunk: unknown) => {
+			html += String(chunk);
+		});
+
+		await new Promise<void>((resolve, reject) => {
+			const { pipe } = renderToPipeableStream(fixture.element, {
+				onShellReady() {
+					disposedAtShell = fixture.metrics.disposed;
+					fixture.resolve("done");
+				},
+				onAllReady() {
+					pipe(stream);
+				},
+				onError(error) {
+					reject(error);
+				},
+			});
+
+			stream.on("end", () => resolve());
+			stream.on("error", reject);
+		});
+
+		await flushMicrotasks(2);
+
+		expect(disposedAtShell).toBe(0);
+		expect(fixture.metrics.renderAttempts).toBeGreaterThanOrEqual(2);
+		expect(fixture.metrics.created).toBeGreaterThanOrEqual(2);
+		expect(fixture.metrics.disposed).toBe(fixture.metrics.created);
+		expect(fixture.metrics.mounted).toBe(0);
+		expect(fixture.metrics.watchRuns).toBe(0);
+		expect(fixture.metrics.effectRuns).toBe(0);
+		expect(html).toContain("1:done");
+	});
+
+	it("keeps Suspense retries safe for renderToReadableStream", async () => {
+		const fixture = createSuspenseRetryFixture();
+		const stream = (await renderToReadableStream(fixture.element)) as Awaited<
+			ReturnType<typeof renderToReadableStream>
+		> & {
+			allReady: Promise<void>;
+		};
+		const attemptsAfterShell = fixture.metrics.renderAttempts;
+		const createdAfterShell = fixture.metrics.created;
+		const disposedAfterShell = fixture.metrics.disposed;
+
+		fixture.resolve("done");
+		await stream.allReady;
+
+		const html = await readReadableStream(stream);
+		await flushMicrotasks(2);
+
+		expect(attemptsAfterShell).toBe(1);
+		expect(createdAfterShell).toBe(1);
+		expect(disposedAfterShell).toBe(createdAfterShell);
+		expect(fixture.metrics.renderAttempts).toBeGreaterThanOrEqual(2);
+		expect(fixture.metrics.created).toBeGreaterThanOrEqual(2);
+		expect(fixture.metrics.disposed).toBe(fixture.metrics.created);
+		expect(fixture.metrics.mounted).toBe(0);
+		expect(fixture.metrics.watchRuns).toBe(0);
+		expect(fixture.metrics.effectRuns).toBe(0);
+		expect(html).toContain("1:done");
 	});
 });
