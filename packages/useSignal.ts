@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 
-import type { ReadonlySignal, Signal } from "@sigrea/core";
+import type { Computed, ReadonlySignal, Signal } from "@sigrea/core";
 import { createSignalHandler } from "@sigrea/core";
 
 import { useSnapshot } from "./useSnapshot";
 
-type ReadableSignal<T> = Signal<T> | ReadonlySignal<T>;
+type ReadableSignal<T> = Signal<T> | ReadonlySignal<T> | Computed<T>;
 
 export function useSignal<T>(source: ReadableSignal<T>) {
 	const handler = useMemo(
