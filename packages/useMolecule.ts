@@ -1,7 +1,9 @@
+import type { MutableRefObject } from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
 const useIsomorphicLayoutEffect =
 	typeof window !== "undefined" ? useLayoutEffect : useEffect;
+const isServerEnvironment = typeof window === "undefined";
 
 import type {
 	MoleculeArgs,
@@ -16,6 +18,33 @@ interface MoleculeState<TReturn extends object, TProps extends object | void> {
 	subscribers: number;
 	disposed: boolean;
 	pendingDisposeToken: symbol | null;
+}
+
+function schedulePendingDispose<
+	TReturn extends object,
+	TProps extends object | void,
+>(
+	stateRef: MutableRefObject<MoleculeState<TReturn, TProps> | undefined>,
+	instance: MoleculeInstance<TReturn>,
+	token: symbol,
+): void {
+	queueMicrotask(() => {
+		const current = stateRef.current;
+		if (
+			current === undefined ||
+			current.instance !== instance ||
+			current.subscribers > 0 ||
+			current.disposed ||
+			current.pendingDisposeToken !== token
+		) {
+			return;
+		}
+
+		current.disposed = true;
+		current.pendingDisposeToken = null;
+		stateRef.current = undefined;
+		disposeMolecule(instance);
+	});
 }
 
 export function useMolecule<
@@ -54,13 +83,20 @@ export function useMolecule<
 				? ([] as MoleculeArgs<TProps>)
 				: ([snapshot as TProps] as MoleculeArgs<TProps>);
 
-		stateRef.current = {
+		const nextState: MoleculeState<TReturn, TProps> = {
 			instance: molecule(...moleculeArgs),
 			molecule,
 			subscribers: 0,
 			disposed: false,
 			pendingDisposeToken: null,
 		};
+		stateRef.current = nextState;
+
+		if (isServerEnvironment) {
+			const token = Symbol("pending-server-dispose");
+			nextState.pendingDisposeToken = token;
+			schedulePendingDispose(stateRef, nextState.instance, token);
+		}
 	}
 
 	const state = stateRef.current;
@@ -104,24 +140,7 @@ export function useMolecule<
 
 				const token = Symbol("pending-dispose");
 				latest.pendingDisposeToken = token;
-
-				queueMicrotask(() => {
-					const current = stateRef.current;
-					if (
-						current === undefined ||
-						current.instance !== instance ||
-						current.subscribers > 0 ||
-						current.disposed ||
-						current.pendingDisposeToken !== token
-					) {
-						return;
-					}
-
-					current.disposed = true;
-					current.pendingDisposeToken = null;
-					stateRef.current = undefined;
-					disposeMolecule(instance);
-				});
+				schedulePendingDispose(stateRef, instance, token);
 			}
 		};
 	}, [instance]);
