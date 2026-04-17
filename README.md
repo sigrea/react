@@ -1,6 +1,6 @@
 # @sigrea/react
 
-`@sigrea/react` adapts [@sigrea/core](https://www.npmjs.com/package/@sigrea/core) molecule modules and signals for use in React components. It binds scope-aware lifecycles to `useEffect`, synchronizes signal subscriptions with React rendering, and provides hooks for both shallow and deep reactivity.
+`@sigrea/react` adapts [@sigrea/core](https://www.npmjs.com/package/@sigrea/core) molecule modules and signals for use in React components. It binds scope-aware lifecycles to React commits, synchronizes signal subscriptions with React rendering, and provides hooks for both shallow and deep reactivity.
 
 - **Signal subscriptions.** `useSignal` subscribes to signals and computed values, triggering re-renders when they change.
 - **Computed subscriptions.** `useComputed` subscribes to computed values and memoizes them per component instance.
@@ -130,10 +130,12 @@ export function ProfileForm() {
 ### useSignal
 
 ```tsx
-function useSignal<T>(signal: Signal<T> | ReadonlySignal<T>): T
+function useSignal<T>(
+  signal: Signal<T> | ReadonlySignal<T> | Computed<T>
+): T
 ```
 
-Subscribes to a signal or computed value and returns its current value. The component re-renders when the signal changes.
+Subscribes to a signal or computed value and returns its current value. The component re-renders when the source changes.
 
 ### useComputed
 
@@ -141,7 +143,7 @@ Subscribes to a signal or computed value and returns its current value. The comp
 function useComputed<T>(source: Computed<T>): T
 ```
 
-Subscribes to a computed value and returns its current value. The component re-renders when the computed value changes, and the subscription is cleaned up when the component unmounts.
+Subscribes to a computed value and returns its current value. This behaves like `useSignal(source)` for computed sources, but keeps the call site explicit when the source is known to be computed.
 
 ### useDeepSignal
 
@@ -164,10 +166,12 @@ Mounts a molecule factory and returns its MoleculeInstance. The molecule's scope
 
 **Lifecycle Timing**
 
-Molecule lifecycles are bound to React's layout effects for precise timing control:
+Molecule lifecycles are bound to React commits for precise timing control:
 
-- In **browser environments**, molecule mounting happens synchronously after DOM updates but before paint (via `useLayoutEffect`). This matches Vue 3's `onMounted` timing, ensuring consistent behavior across frameworks.
-- In **SSR environments**, lifecycle callbacks are deferred to `useEffect` to avoid hydration warnings while maintaining the same cleanup guarantees.
+- In **browser environments**, molecule mounting happens synchronously after the component commits but before paint (via `useLayoutEffect`). This matches Vue 3's `onMounted` timing, ensuring consistent behavior across frameworks.
+- In **SSR environments**, `useMolecule` supports both `renderToString` and streaming server rendering (`renderToPipeableStream`, `renderToReadableStream`). The molecule instance is created during render so components can read its state, but it is never mounted on the server.
+- `onMount`, `watch`, and `watchEffect` registered during setup do not run during server rendering.
+- After a **server render** finishes, the unmounted molecule instance is disposed automatically in a microtask so setup-scope `onDispose` cleanups do not leak across requests.
 
 This design ensures that `onMount` callbacks and `watch` effects activate at the right moment—early enough to set up subscriptions before the first paint, yet safely after the component has committed to the DOM.
 
