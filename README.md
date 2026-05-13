@@ -30,7 +30,7 @@
 npm install @sigrea/react @sigrea/core react react-dom
 ```
 
-Requires React 18+ and Node.js 20 or later.
+Requires React 18+ and Node.js 24 or later.
 
 ## Quick Start
 
@@ -224,7 +224,7 @@ createRoot(document.getElementById("root")!).render(<App />);
 
 ## Development
 
-This repo targets Node.js 20 or later.
+This repo targets Node.js 24 or later.
 
 If you use mise:
 
