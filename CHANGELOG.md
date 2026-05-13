@@ -1,5 +1,28 @@
 # @sigrea/react
 
+## v0.6.0
+
+[compare changes](https://github.com/sigrea/react/compare/v0.5.0...v0.6.0)
+
+### 🩹 Fixes
+
+- Auto-format package.json after changelogen in release tasks ([2938f2c](https://github.com/sigrea/react/commit/2938f2c))
+- Tighten React adapter signal and SSR contracts ([#17](https://github.com/sigrea/react/pull/17))
+
+### 🏡 Chore
+
+- Fix package.json formatting ([1607025](https://github.com/sigrea/react/commit/1607025))
+- Require core 0.6 and Node 24 for React ([#19](https://github.com/sigrea/react/pull/19))
+
+### ✅ Tests
+
+- Cover Suspense retries in React streaming SSR ([#18](https://github.com/sigrea/react/pull/18))
+
+### ❤️ Contributors
+
+- Aose ([@aose-yuu](https://github.com/aose-yuu))
+- Aose-yuu <aose.developer@gmail.com>
+
 ## v0.5.0
 
 [compare changes](https://github.com/sigrea/react/compare/v0.4.0...v0.5.0)
