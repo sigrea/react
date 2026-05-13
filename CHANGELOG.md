@@ -1,5 +1,17 @@
 # @sigrea/react
 
+## v0.6.1
+
+[compare changes](https://github.com/sigrea/react/compare/v0.6.0...v0.6.1)
+
+### 🏡 Chore
+
+- Add React package support files ([#20](https://github.com/sigrea/react/pull/20))
+
+### ❤️ Contributors
+
+- Aose ([@aose-yuu](https://github.com/aose-yuu))
+
 ## v0.6.0
 
 [compare changes](https://github.com/sigrea/react/compare/v0.5.0...v0.6.0)
