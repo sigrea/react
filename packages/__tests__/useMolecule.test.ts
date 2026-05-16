@@ -131,6 +131,39 @@ describe("useMolecule", () => {
 		expect(root.container.textContent).toBe("true");
 	});
 
+	it("syncs top-level key removal from props getters", async () => {
+		const dialogMolecule = molecule(
+			(props: { disabled?: boolean; open: boolean }) => {
+				return {
+					disabled: computed(() => props.disabled),
+					hasDisabled: computed(() => "disabled" in props),
+				};
+			},
+		);
+
+		function TestComponent({ disabled }: { disabled?: boolean }) {
+			const instance = useMolecule(
+				dialogMolecule,
+				() =>
+					disabled === undefined ? { open: true } : { disabled, open: true },
+				[disabled],
+			);
+			const hasDisabled = useSignal(instance.hasDisabled);
+			const currentDisabled = useSignal(instance.disabled);
+			return createElement(
+				"span",
+				null,
+				`${hasDisabled}:${String(currentDisabled)}`,
+			);
+		}
+
+		await root.render(createElement(TestComponent, { disabled: true }));
+		expect(root.container.textContent).toBe("true:true");
+
+		await root.render(createElement(TestComponent, {}));
+		expect(root.container.textContent).toBe("false:undefined");
+	});
+
 	it("does not resync referential props while dependencies are stable", async () => {
 		const itemMolecule = molecule((props: { item: { id: number } }) => {
 			return { item: computed(() => props.item) };
