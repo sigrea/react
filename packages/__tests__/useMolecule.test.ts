@@ -3,12 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
 	type MoleculeInstance,
+	computed,
 	disposeTrackedMolecules,
 	molecule,
 	onUnmount,
 } from "@sigrea/core";
 
 import { useMolecule } from "../useMolecule";
+import { useSignal } from "../useSignal";
 import { createTestRoot, flushMicrotasks } from "./testUtils";
 
 describe("useMolecule", () => {
@@ -23,14 +25,14 @@ describe("useMolecule", () => {
 		disposeTrackedMolecules();
 	});
 
-	it("does not remount when re-rendered with updated props", async () => {
+	it("does not remount and keeps object props as an initial snapshot", async () => {
 		const cleanup = vi.fn();
 		const counterMolecule = molecule((props: { value: number }) => {
 			onUnmount(() => cleanup(props.value));
-			return { value: props.value };
+			return { value: computed(() => props.value) };
 		});
 
-		const observed: Array<MoleculeInstance<{ value: number }>> = [];
+		const observed: Array<MoleculeInstance<{ value: { value: number } }>> = [];
 
 		function TestComponent({ value }: { value: number }) {
 			const instance = useMolecule(counterMolecule, { value });
@@ -45,8 +47,8 @@ describe("useMolecule", () => {
 
 		expect(observed).toHaveLength(2);
 		expect(observed[0]).toBe(observed[1]);
-		expect(observed[0].value).toBe(1);
-		expect(observed[1].value).toBe(1);
+		expect(observed[0].value.value).toBe(1);
+		expect(observed[1].value.value).toBe(1);
 		expect(cleanup).not.toHaveBeenCalled();
 
 		await root.unmount();
@@ -82,6 +84,100 @@ describe("useMolecule", () => {
 
 		expect(cleanup).toHaveBeenCalledTimes(1);
 		expect(cleanup).toHaveBeenCalledWith(1);
+	});
+
+	it("accepts a props getter", async () => {
+		const counterMolecule = molecule((props: { value: number }) => {
+			return { value: computed(() => props.value) };
+		});
+
+		const observed: Array<MoleculeInstance<{ value: { value: number } }>> = [];
+
+		function TestComponent({ value }: { value: number }) {
+			const instance = useMolecule(
+				counterMolecule,
+				() => ({
+					value: value * 2,
+				}),
+				[value],
+			);
+			observed.push(instance);
+			return null;
+		}
+
+		await root.render(createElement(TestComponent, { value: 1 }));
+		await root.render(createElement(TestComponent, { value: 2 }));
+
+		expect(observed).toHaveLength(2);
+		expect(observed[0]).toBe(observed[1]);
+		expect(observed[1].value.value).toBe(4);
+	});
+
+	it("rerenders signal consumers after committed props getter sync", async () => {
+		const dialogMolecule = molecule((props: { open: boolean }) => {
+			return { open: computed(() => props.open) };
+		});
+
+		function TestComponent({ open }: { open: boolean }) {
+			const instance = useMolecule(dialogMolecule, () => ({ open }), [open]);
+			const currentOpen = useSignal(instance.open);
+			return createElement("span", null, String(currentOpen));
+		}
+
+		await root.render(createElement(TestComponent, { open: false }));
+		expect(root.container.textContent).toBe("false");
+
+		await root.render(createElement(TestComponent, { open: true }));
+		expect(root.container.textContent).toBe("true");
+	});
+
+	it("does not resync referential props while dependencies are stable", async () => {
+		const itemMolecule = molecule((props: { item: { id: number } }) => {
+			return { item: computed(() => props.item) };
+		});
+
+		const observed: Array<{ id: number }> = [];
+
+		function TestComponent({ id }: { id: number }) {
+			const instance = useMolecule(
+				itemMolecule,
+				() => ({
+					item: { id },
+				}),
+				[id],
+			);
+			const item = useSignal(instance.item);
+			observed.push(item);
+			return createElement("span", null, String(item.id));
+		}
+
+		await root.render(createElement(TestComponent, { id: 1 }));
+		const firstItem = observed.at(-1);
+
+		await root.render(createElement(TestComponent, { id: 1 }));
+
+		expect(root.container.textContent).toBe("1");
+		expect(observed.at(-1)).toBe(firstItem);
+
+		await root.render(createElement(TestComponent, { id: 2 }));
+
+		expect(root.container.textContent).toBe("2");
+		expect(observed.at(-1)).toEqual({ id: 2 });
+	});
+
+	it("rejects a props getter without dependencies at runtime", async () => {
+		const counterMolecule = molecule((props: { value: number }) => {
+			return { value: computed(() => props.value) };
+		});
+
+		function TestComponent() {
+			useMolecule(counterMolecule, (() => ({ value: 1 })) as never);
+			return null;
+		}
+
+		await expect(root.render(createElement(TestComponent))).rejects.toThrow(
+			"useMolecule props getter in React requires a dependency list.",
+		);
 	});
 
 	it("remounts when the molecule factory changes", async () => {
@@ -125,3 +221,24 @@ describe("useMolecule", () => {
 		expect(cleanups).toHaveBeenLastCalledWith("b");
 	});
 });
+
+function expectReactUseMoleculeTypeErrors() {
+	type OptionalProps = { value?: number };
+	const optionalMolecule = molecule((props: { value?: number }) => {
+		return { value: computed(() => props.value) };
+	});
+	const callablePropMolecule = molecule((props: { call?: () => void }) => {
+		return { handler: props.call };
+	});
+	const optionalProps: OptionalProps | undefined =
+		Math.random() > 0.5 ? { value: 1 } : undefined;
+
+	useMolecule(optionalMolecule);
+	useMolecule(optionalMolecule, undefined);
+	useMolecule(optionalMolecule, optionalProps);
+	useMolecule(optionalMolecule, { value: 1 });
+	useMolecule(callablePropMolecule, { call: (): void => {} });
+
+	// @ts-expect-error React props getters require a dependency list.
+	useMolecule(optionalMolecule, () => ({ value: 1 }));
+}

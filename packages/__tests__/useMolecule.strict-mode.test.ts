@@ -1,9 +1,15 @@
 import { StrictMode, createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { disposeTrackedMolecules, molecule, onDispose } from "@sigrea/core";
+import {
+	computed,
+	disposeTrackedMolecules,
+	molecule,
+	onDispose,
+} from "@sigrea/core";
 
 import { useMolecule } from "../useMolecule";
+import { useSignal } from "../useSignal";
 import { createTestRoot, flushMicrotasks } from "./testUtils";
 
 describe("useMolecule in StrictMode", () => {
@@ -42,5 +48,52 @@ describe("useMolecule in StrictMode", () => {
 
 		expect(cleanup).toHaveBeenCalledTimes(1);
 		expect(cleanup).toHaveBeenCalledWith(1);
+	});
+
+	it("does not replay live props sync while dependencies are stable", async () => {
+		const readProps = vi.fn((value: number) => ({ value }));
+		const counterMolecule = molecule((props: { value: number }) => {
+			return { value: computed(() => props.value) };
+		});
+
+		function TestComponent({ value }: { value: number }) {
+			const instance = useMolecule(counterMolecule, () => readProps(value), [
+				value,
+			]);
+			const currentValue = useSignal(instance.value);
+			return createElement("span", null, String(currentValue));
+		}
+
+		await root.render(
+			createElement(
+				StrictMode,
+				null,
+				createElement(TestComponent, { value: 1 }),
+			),
+		);
+
+		expect(readProps).toHaveBeenCalledTimes(1);
+
+		await root.render(
+			createElement(
+				StrictMode,
+				null,
+				createElement(TestComponent, { value: 1 }),
+			),
+		);
+
+		expect(root.container.textContent).toBe("1");
+		expect(readProps).toHaveBeenCalledTimes(1);
+
+		await root.render(
+			createElement(
+				StrictMode,
+				null,
+				createElement(TestComponent, { value: 2 }),
+			),
+		);
+
+		expect(root.container.textContent).toBe("2");
+		expect(readProps).toHaveBeenCalledTimes(2);
 	});
 });

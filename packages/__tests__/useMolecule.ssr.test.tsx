@@ -170,6 +170,73 @@ describe("useMolecule on the server", () => {
 		expect(disposed).toHaveBeenCalledTimes(1);
 	});
 
+	it("uses the server cleanup path when window exists without document", async () => {
+		const globalWithWindow = globalThis as typeof globalThis & {
+			document?: unknown;
+			window?: unknown;
+		};
+		const hadWindow = Object.prototype.hasOwnProperty.call(
+			globalThis,
+			"window",
+		);
+		const hadDocument = Object.prototype.hasOwnProperty.call(
+			globalThis,
+			"document",
+		);
+		const originalWindow = globalWithWindow.window;
+		const originalDocument = globalWithWindow.document;
+
+		Object.defineProperty(globalThis, "window", {
+			configurable: true,
+			value: {},
+		});
+		Reflect.deleteProperty(globalThis, "document");
+		vi.resetModules();
+
+		try {
+			const core = await import("@sigrea/core");
+			const reactAdapter = await import("../useMolecule");
+			const disposed = vi.fn();
+			const DemoMolecule = core.molecule(() => {
+				core.onDispose(() => {
+					disposed();
+				});
+				return { label: "server" };
+			});
+
+			function TestComponent() {
+				const instance = reactAdapter.useMolecule(DemoMolecule);
+				return createElement("span", null, instance.label);
+			}
+
+			expect(renderToString(createElement(TestComponent))).toBe(
+				"<span>server</span>",
+			);
+
+			await flushMicrotasks(2);
+
+			expect(disposed).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.resetModules();
+			if (hadWindow) {
+				Object.defineProperty(globalThis, "window", {
+					configurable: true,
+					value: originalWindow,
+				});
+			} else {
+				Reflect.deleteProperty(globalThis, "window");
+			}
+			if (hadDocument) {
+				Object.defineProperty(globalThis, "document", {
+					configurable: true,
+					value: originalDocument,
+				});
+			} else {
+				Reflect.deleteProperty(globalThis, "document");
+			}
+		}
+	});
+
 	it("does not run mount-time watches during server rendering", async () => {
 		const watchCallback = vi.fn();
 		const DemoMolecule = molecule(() => {
