@@ -221,6 +221,10 @@ as `() => ({ open })` with `[open]`, and syncs top-level props only after those
 dependencies change. This matches React's dependency model and avoids resyncing
 referential props on every commit.
 
+The dependency list is part of the React adapter contract. Include every React
+value read by the getter. If the getter reads a value that is not in the list,
+the molecule props will not update when that value changes.
+
 Inside a molecule, read props as `props.name`; destructuring copies the current
 value and loses reactivity.
 
@@ -291,7 +295,7 @@ This repo targets Node.js 24 or later.
 If you use mise:
 
 - `mise trust -y` — trust `mise.toml` (first run only).
-- `mise run ci` — run CI-equivalent checks locally.
+- `pnpm -s cicheck` — run CI-equivalent checks locally.
 - `mise run notes` — preview release notes (optional).
 
 You can also run pnpm scripts directly:
@@ -301,7 +305,7 @@ You can also run pnpm scripts directly:
 - `pnpm typecheck` — run TypeScript type checking.
 - `pnpm test:coverage` — collect coverage.
 - `pnpm build` — compile via unbuild to produce dual CJS/ESM bundles.
-- `pnpm cicheck` — run CI checks locally.
+- `pnpm -s cicheck` — run CI checks locally.
 - `pnpm dev` — launch the playground counter demo.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for workflow details.
