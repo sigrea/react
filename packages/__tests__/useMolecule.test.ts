@@ -115,19 +115,21 @@ describe("useMolecule", () => {
 
 	it("rerenders signal consumers after committed props getter sync", async () => {
 		const dialogMolecule = molecule((props: { open: boolean }) => {
-			return { open: computed(() => props.open) };
+			return { isOpen: computed(() => props.open) };
 		});
 
-		function TestComponent({ open }: { open: boolean }) {
-			const instance = useMolecule(dialogMolecule, () => ({ open }), [open]);
-			const currentOpen = useSignal(instance.open);
-			return createElement("span", null, String(currentOpen));
+		function TestComponent({ isOpen }: { isOpen: boolean }) {
+			const instance = useMolecule(dialogMolecule, () => ({ open: isOpen }), [
+				isOpen,
+			]);
+			const renderedIsOpen = useSignal(instance.isOpen);
+			return createElement("span", null, String(renderedIsOpen));
 		}
 
-		await root.render(createElement(TestComponent, { open: false }));
+		await root.render(createElement(TestComponent, { isOpen: false }));
 		expect(root.container.textContent).toBe("false");
 
-		await root.render(createElement(TestComponent, { open: true }));
+		await root.render(createElement(TestComponent, { isOpen: true }));
 		expect(root.container.textContent).toBe("true");
 	});
 

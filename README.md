@@ -71,52 +71,52 @@ type DialogProps = {
 };
 
 type DialogEvents = {
-  "update:open": [open: boolean];
+  "update:open": [next: boolean];
 };
 
 const DialogMolecule = molecule<DialogProps>((props) => {
   const { send, on } = createEvents<DialogEvents>();
-  const open = toSignal(props, "open");
+  const isOpen = toSignal(props, "open");
   const disabled = computed(() => props.disabled ?? false);
 
-  const requestOpenChange = async (nextOpen: boolean) => {
+  const requestOpenChange = async (next: boolean) => {
     if (disabled.value) {
       return;
     }
-    await send("update:open", nextOpen);
+    await send("update:open", next);
   };
 
   return {
     disabled,
+    isOpen,
     on,
-    open,
     requestOpenChange,
   };
 });
 
 const DialogControllerMolecule = molecule(() => {
-  const open = signal(false);
+  const isOpen = signal(false);
   const dialog = get(DialogMolecule, () => ({
-    open: open.value,
+    open: isOpen.value,
   }));
 
-  dialog.on("update:open", (nextOpen) => {
-    open.value = nextOpen;
+  dialog.on("update:open", (next) => {
+    isOpen.value = next;
   });
 
   return {
-    open: readonly(open),
+    isOpen: readonly(isOpen),
     requestOpenChange: dialog.requestOpenChange,
   };
 });
 
 export function DialogButton() {
   const dialog = useMolecule(DialogControllerMolecule);
-  const currentOpen = useSignal(dialog.open);
+  const isOpen = useSignal(dialog.isOpen);
 
   return (
-    <button onClick={() => dialog.requestOpenChange(!currentOpen)}>
-      {currentOpen ? "Close" : "Open"}
+    <button onClick={() => dialog.requestOpenChange(!isOpen)}>
+      {isOpen ? "Close" : "Open"}
     </button>
   );
 }
