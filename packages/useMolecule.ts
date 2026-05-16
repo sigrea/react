@@ -1,31 +1,60 @@
-import type { MutableRefObject } from "react";
+import type { DependencyList, MutableRefObject } from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
-const useIsomorphicLayoutEffect =
-	typeof window !== "undefined" ? useLayoutEffect : useEffect;
-const isServerEnvironment = typeof window === "undefined";
+const hasDocument = typeof globalThis.document !== "undefined";
+const useIsomorphicLayoutEffect = hasDocument ? useLayoutEffect : useEffect;
+const isServerEnvironment = !hasDocument;
 
 import type {
+	IsAllOptional,
 	MoleculeArgs,
 	MoleculeFactory,
 	MoleculeInstance,
+	MoleculePropsGetter,
+	ResolvedMoleculeProps,
 } from "@sigrea/core";
-import { disposeMolecule, mountMolecule, unmountMolecule } from "@sigrea/core";
+import {
+	disposeMolecule,
+	mountMolecule,
+	unmountMolecule,
+	updateMoleculeProps,
+} from "@sigrea/core";
 
 interface MoleculeState<TReturn extends object, TProps extends object | void> {
-	instance: MoleculeInstance<TReturn>;
+	instance: MoleculeInstance<TReturn, TProps>;
 	molecule: MoleculeFactory<TReturn, TProps>;
 	subscribers: number;
 	disposed: boolean;
 	pendingDisposeToken: symbol | null;
+	livePropsDeps: DependencyList | undefined;
 }
+
+type StaticMoleculeProps<
+	TProps extends object | void,
+	TSource,
+> = TSource extends (...args: never[]) => unknown
+	? never
+	: TSource & ResolvedMoleculeProps<TProps>;
+
+type ReactMoleculeArgs<
+	TProps extends object | void,
+	TSource = ResolvedMoleculeProps<TProps>,
+> = TProps extends void
+	? []
+	: IsAllOptional<TProps> extends true
+		?
+				| [props?: StaticMoleculeProps<TProps, TSource>]
+				| [props: MoleculePropsGetter<TProps>, deps: DependencyList]
+		:
+				| [props: StaticMoleculeProps<TProps, TSource>]
+				| [props: MoleculePropsGetter<TProps>, deps: DependencyList];
 
 function schedulePendingDispose<
 	TReturn extends object,
 	TProps extends object | void,
 >(
 	stateRef: MutableRefObject<MoleculeState<TReturn, TProps> | undefined>,
-	instance: MoleculeInstance<TReturn>,
+	instance: MoleculeInstance<TReturn, TProps>,
 	token: symbol,
 ): void {
 	queueMicrotask(() => {
@@ -50,15 +79,13 @@ function schedulePendingDispose<
 export function useMolecule<
 	TReturn extends object,
 	TProps extends object | void = void,
+	TSource = ResolvedMoleculeProps<TProps>,
 >(
 	molecule: MoleculeFactory<TReturn, TProps>,
-	...args: MoleculeArgs<TProps>
-): MoleculeInstance<TReturn> {
-	const props = args.length === 0 ? undefined : (args[0] as TProps | undefined);
-
-	if (props !== undefined && (typeof props !== "object" || props === null)) {
-		throw new TypeError("useMolecule props must be an object.");
-	}
+	...args: ReactMoleculeArgs<TProps, TSource>
+): MoleculeInstance<TReturn, TProps> {
+	const propsSource = args[0];
+	const propsDeps = resolvePropsDeps(propsSource, args[1]);
 
 	const stateRef = useRef<MoleculeState<TReturn, TProps> | undefined>(
 		undefined,
@@ -75,13 +102,11 @@ export function useMolecule<
 			stateRef.current = undefined;
 		}
 
-		const snapshot =
-			props === undefined ? undefined : ({ ...props } as Exclude<TProps, void>);
-
+		const initialProps = resolveProps(propsSource);
 		const moleculeArgs =
-			snapshot === undefined
+			initialProps === undefined
 				? ([] as MoleculeArgs<TProps>)
-				: ([snapshot as TProps] as MoleculeArgs<TProps>);
+				: ([initialProps as TProps] as MoleculeArgs<TProps>);
 
 		const nextState: MoleculeState<TReturn, TProps> = {
 			instance: molecule(...moleculeArgs),
@@ -89,6 +114,8 @@ export function useMolecule<
 			subscribers: 0,
 			disposed: false,
 			pendingDisposeToken: null,
+			livePropsDeps:
+				propsDeps === undefined ? undefined : snapshotDependencies(propsDeps),
 		};
 		stateRef.current = nextState;
 
@@ -107,6 +134,27 @@ export function useMolecule<
 	}
 
 	const instance = state.instance;
+
+	useIsomorphicLayoutEffect(() => {
+		if (!isPropsGetter<TProps, TSource>(propsSource)) {
+			return;
+		}
+		if (propsDeps === undefined) {
+			return;
+		}
+
+		const state = stateRef.current;
+		if (state === undefined || state.instance !== instance) {
+			return;
+		}
+
+		if (areDependencyListsEqual(state.livePropsDeps, propsDeps)) {
+			return;
+		}
+
+		updateMoleculeProps(instance, resolvePropsForUpdate(propsSource));
+		state.livePropsDeps = snapshotDependencies(propsDeps);
+	}, [instance, ...(propsDeps ?? [])]);
 
 	useIsomorphicLayoutEffect(() => {
 		const state = stateRef.current;
@@ -146,4 +194,81 @@ export function useMolecule<
 	}, [instance]);
 
 	return instance;
+}
+
+function resolveProps<
+	TProps extends object | void,
+	TSource = ResolvedMoleculeProps<TProps>,
+>(
+	source: ReactMoleculeArgs<TProps, TSource>[0],
+): Exclude<TProps, void> | undefined {
+	const props = typeof source === "function" ? source() : source;
+	if (props !== undefined && (typeof props !== "object" || props === null)) {
+		throw new TypeError("useMolecule props must be an object.");
+	}
+	return props as Exclude<TProps, void> | undefined;
+}
+
+function resolvePropsForUpdate<
+	TProps extends object | void,
+	TSource = ResolvedMoleculeProps<TProps>,
+>(
+	source: ReactMoleculeArgs<TProps, TSource>[0],
+): ResolvedMoleculeProps<TProps> {
+	return (resolveProps<TProps, TSource>(source) ??
+		{}) as ResolvedMoleculeProps<TProps>;
+}
+
+function isPropsGetter<
+	TProps extends object | void,
+	TSource = ResolvedMoleculeProps<TProps>,
+>(
+	source: ReactMoleculeArgs<TProps, TSource>[0],
+): source is Extract<ReactMoleculeArgs<TProps, TSource>[0], () => object> {
+	return typeof source === "function";
+}
+
+function resolvePropsDeps<
+	TProps extends object | void,
+	TSource = ResolvedMoleculeProps<TProps>,
+>(
+	source: ReactMoleculeArgs<TProps, TSource>[0],
+	deps: DependencyList | undefined,
+): DependencyList | undefined {
+	if (!isPropsGetter<TProps, TSource>(source)) {
+		return undefined;
+	}
+
+	if (!Array.isArray(deps)) {
+		throw new TypeError(
+			"useMolecule props getter in React requires a dependency list.",
+		);
+	}
+
+	return deps;
+}
+
+function snapshotDependencies(deps: DependencyList): DependencyList {
+	return [...deps];
+}
+
+function areDependencyListsEqual(
+	current: DependencyList | undefined,
+	next: DependencyList | undefined,
+): boolean {
+	if (current === undefined || next === undefined) {
+		return current === next;
+	}
+
+	if (current.length !== next.length) {
+		return false;
+	}
+
+	for (let index = 0; index < current.length; index += 1) {
+		if (!Object.is(current[index], next[index])) {
+			return false;
+		}
+	}
+
+	return true;
 }
