@@ -30,6 +30,9 @@
 npm install @sigrea/react @sigrea/core react react-dom
 ```
 
+Install `@sigrea/use` as well when shared molecules use utilities such as
+`createEvents`.
+
 Requires React 18+ and Node.js 24 or later.
 
 ## Quick Start
@@ -51,51 +54,70 @@ export function CounterLabel() {
 ### Bridge Framework-Agnostic Molecules
 
 ```tsx
-import { molecule, readonly, signal } from "@sigrea/core";
+import {
+  computed,
+  get,
+  molecule,
+  readonly,
+  signal,
+  toSignal,
+} from "@sigrea/core";
 import { useMolecule, useSignal } from "@sigrea/react";
+import { createEvents } from "@sigrea/use";
 
-type CounterProps = {
-  initialCount: number;
-  initialStep: number;
+type DialogProps = {
+  open: boolean;
+  disabled?: boolean;
 };
 
-const CounterMolecule = molecule((props: CounterProps) => {
-  const count = signal(props.initialCount);
-  const step = signal(props.initialStep);
+type DialogEvents = {
+  "update:open": [open: boolean];
+};
 
-  function setStep(next: number) {
-    step.value = next;
-  }
+const DialogMolecule = molecule<DialogProps>((props) => {
+  const { send, on } = createEvents<DialogEvents>();
+  const open = toSignal(props, "open");
+  const disabled = computed(() => props.disabled ?? false);
 
-  function increment() {
-    count.value += step.value;
-  }
-
-  function reset() {
-    count.value = props.initialCount;
-  }
+  const requestOpenChange = async (nextOpen: boolean) => {
+    if (disabled.value) {
+      return;
+    }
+    await send("update:open", nextOpen);
+  };
 
   return {
-    count: readonly(count),
-    step: readonly(step),
-    setStep,
-    increment,
-    reset,
+    disabled,
+    on,
+    open,
+    requestOpenChange,
   };
 });
 
-export function Counter(props: CounterProps) {
-  const counter = useMolecule(CounterMolecule, props);
-  const count = useSignal(counter.count);
-  const step = useSignal(counter.step);
+const DialogControllerMolecule = molecule(() => {
+  const open = signal(false);
+  const dialog = get(DialogMolecule, () => ({
+    open: open.value,
+  }));
+
+  dialog.on("update:open", (nextOpen) => {
+    open.value = nextOpen;
+  });
+
+  return {
+    open: readonly(open),
+    requestOpenChange: dialog.requestOpenChange,
+  };
+});
+
+export function DialogButton() {
+  const dialog = useMolecule(DialogControllerMolecule);
+  const currentOpen = useSignal(dialog.open);
 
   return (
-    <div>
-      <span>{count}</span>
-      <button onClick={counter.increment}>Increment</button>
-      <button onClick={counter.reset}>Reset</button>
-      <button onClick={() => counter.setStep(step + 1)}>Step +</button>
-    </div>
+    <button onClick={() => dialog.requestOpenChange(!currentOpen)}>
+      {currentOpen ? "Close" : "Open"}
+    </button>
   );
 }
 ```
@@ -137,13 +159,16 @@ function useSignal<T>(
 
 Subscribes to a signal or computed value and returns its current value. The component re-renders when the source changes.
 
+Unlike the Vue adapter, this hook returns the unwrapped value `T` directly rather
+than a ref.
+
 ### useComputed
 
 ```tsx
 function useComputed<T>(source: Computed<T>): T
 ```
 
-Subscribes to a computed value and returns its current value. This behaves like `useSignal(source)` for computed sources, but keeps the call site explicit when the source is known to be computed.
+Subscribes to a computed value and returns its current value. Prefer this over `useSignal` when the source is statically known to be `Computed<T>`, so type-checking enforces that only computed sources are passed.
 
 ### useDeepSignal
 
@@ -156,10 +181,20 @@ Exposes a deep signal object for direct mutation within the component. Updates t
 ### useMolecule
 
 ```tsx
-function useMolecule<TReturn extends object, TProps extends object | void = void>(
+function useMolecule<TReturn extends object>(
+  molecule: MoleculeFactory<TReturn, void>
+): MoleculeInstance<TReturn, void>
+
+function useMolecule<TReturn extends object, TProps extends object>(
   molecule: MoleculeFactory<TReturn, TProps>,
-  ...args: MoleculeArgs<TProps>
-): MoleculeInstance<TReturn>
+  props: TProps
+): MoleculeInstance<TReturn, TProps>
+
+function useMolecule<TReturn extends object, TProps extends object>(
+  molecule: MoleculeFactory<TReturn, TProps>,
+  props: () => TProps,
+  deps: DependencyList
+): MoleculeInstance<TReturn, TProps>
 ```
 
 Mounts a molecule factory and returns its MoleculeInstance. The molecule's scope is bound to the component lifecycle: `onMount` callbacks run after the component mounts, and `onUnmount` callbacks run before it unmounts.
@@ -173,11 +208,38 @@ Molecule lifecycles are bound to React commits for precise timing control:
 - `onMount`, `watch`, and `watchEffect` registered during setup do not run during server rendering.
 - After a **server render** finishes, the unmounted molecule instance is disposed automatically in a microtask so setup-scope `onDispose` cleanups do not leak across requests.
 
-This design ensures that `onMount` callbacks and `watch` effects activate at the right moment—early enough to set up subscriptions before the first paint, yet safely after the component has committed to the DOM.
+`onMount`, `watch`, and `watchEffect` run after the component commits. In the
+browser, they run before paint.
 
 **Props Handling**
 
-Props are treated as an initial snapshot. Updating component props does not recreate the molecule instance or update the snapshot; model dynamic values via signals or explicit molecule methods (for example, `setStep`).
+`useMolecule` keeps the same molecule instance while the factory stays the same.
+Molecules without props, and molecules whose props are all optional, can be
+mounted without a props argument. Passing a props object directly creates an
+initial snapshot. Passing a props getter requires a React dependency list, such
+as `() => ({ open })` with `[open]`, and syncs top-level props only after those
+dependencies change. This matches React's dependency model and avoids resyncing
+referential props on every commit.
+
+Inside a molecule, read props as `props.name`; destructuring copies the current
+value and loses reactivity.
+
+React components mount the root or controller molecule and use `useSignal()` to
+read returned signals. Raw molecule events such as `dialog.on(...)` belong
+inside the molecule graph, not in component bodies. If a UI wrapper needs a
+React-controlled API such as `open` + `onOpenChange`, bridge it at the wrapper
+boundary.
+
+**Client Components and SSR**
+
+`@sigrea/react` exports hooks and is intended for Client Components. Do not call
+`useMolecule`, `useSignal`, `useComputed`, or `useDeepSignal` directly from a
+React Server Component.
+
+During server rendering, molecule instances can be created for the render pass,
+but they are not mounted. `onMount`, `watch`, and `watchEffect` registered during
+setup do not run on the server. After server rendering completes, unmounted
+molecules are disposed in a microtask.
 
 ## Testing
 
