@@ -1,5 +1,17 @@
 # @sigrea/react
 
+## v0.7.0
+
+[compare changes](https://github.com/sigrea/react/compare/v0.6.1...v0.7.0)
+
+### 🚀 Enhancements
+
+- Support React live molecule props ([#21](https://github.com/sigrea/react/pull/21))
+
+### ❤️ Contributors
+
+- Aose ([@aose-yuu](https://github.com/aose-yuu))
+
 ## v0.6.1
 
 [compare changes](https://github.com/sigrea/react/compare/v0.6.0...v0.6.1)
