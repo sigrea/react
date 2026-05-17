@@ -115,20 +115,55 @@ describe("useMolecule", () => {
 
 	it("rerenders signal consumers after committed props getter sync", async () => {
 		const dialogMolecule = molecule((props: { open: boolean }) => {
-			return { open: computed(() => props.open) };
+			return { status: computed(() => (props.open ? "open" : "closed")) };
 		});
 
-		function TestComponent({ open }: { open: boolean }) {
-			const instance = useMolecule(dialogMolecule, () => ({ open }), [open]);
-			const currentOpen = useSignal(instance.open);
-			return createElement("span", null, String(currentOpen));
+		function TestComponent({ isOpen }: { isOpen: boolean }) {
+			const instance = useMolecule(dialogMolecule, () => ({ open: isOpen }), [
+				isOpen,
+			]);
+			const status = useSignal(instance.status);
+			return createElement("span", null, status);
 		}
 
-		await root.render(createElement(TestComponent, { open: false }));
-		expect(root.container.textContent).toBe("false");
+		await root.render(createElement(TestComponent, { isOpen: false }));
+		expect(root.container.textContent).toBe("closed");
 
-		await root.render(createElement(TestComponent, { open: true }));
-		expect(root.container.textContent).toBe("true");
+		await root.render(createElement(TestComponent, { isOpen: true }));
+		expect(root.container.textContent).toBe("open");
+	});
+
+	it("syncs top-level key removal from props getters", async () => {
+		const dialogMolecule = molecule(
+			(props: { disabled?: boolean; open: boolean }) => {
+				return {
+					disabled: computed(() => props.disabled),
+					hasDisabled: computed(() => "disabled" in props),
+				};
+			},
+		);
+
+		function TestComponent({ disabled }: { disabled?: boolean }) {
+			const instance = useMolecule(
+				dialogMolecule,
+				() =>
+					disabled === undefined ? { open: true } : { disabled, open: true },
+				[disabled],
+			);
+			const hasDisabled = useSignal(instance.hasDisabled);
+			const currentDisabled = useSignal(instance.disabled);
+			return createElement(
+				"span",
+				null,
+				`${hasDisabled}:${String(currentDisabled)}`,
+			);
+		}
+
+		await root.render(createElement(TestComponent, { disabled: true }));
+		expect(root.container.textContent).toBe("true:true");
+
+		await root.render(createElement(TestComponent, {}));
+		expect(root.container.textContent).toBe("false:undefined");
 	});
 
 	it("does not resync referential props while dependencies are stable", async () => {
