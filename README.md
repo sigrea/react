@@ -1,28 +1,11 @@
 # @sigrea/react
 
-`@sigrea/react` adapts [@sigrea/core](https://www.npmjs.com/package/@sigrea/core) molecule modules and signals for use in React components. It binds scope-aware lifecycles to React commits, synchronizes signal subscriptions with React rendering, and provides hooks for both shallow and deep reactivity.
+React hooks for [@sigrea/core](https://www.npmjs.com/package/@sigrea/core).
+Use this package when a React component needs to mount a molecule, read a
+Sigrea signal, or subscribe to a deep signal object.
 
-- **Signal subscriptions.** `useSignal` subscribes to signals and computed values, triggering re-renders when they change.
-- **Computed subscriptions.** `useComputed` subscribes to computed values and memoizes them per component instance.
-- **Deep signal subscriptions.** `useDeepSignal` subscribes to deep signal objects and exposes them for direct mutation.
-- **Molecule lifecycles.** `useMolecule` mounts molecule factories and binds their lifecycles to React components.
-
-## Table of Contents
-
-- [Install](#install)
-- [Quick Start](#quick-start)
-  - [Consume a Signal](#consume-a-signal)
-  - [Bridge Framework-Agnostic Molecules](#bridge-framework-agnostic-molecules)
-  - [Work with Deep Signals](#work-with-deep-signals)
-- [API Reference](#api-reference)
-  - [useSignal](#usesignal)
-  - [useComputed](#usecomputed)
-  - [useDeepSignal](#usedeepsignal)
-  - [useMolecule](#usemolecule)
-- [Testing](#testing)
-- [Handling Scope Cleanup Errors](#handling-scope-cleanup-errors)
-- [Development](#development)
-- [License](#license)
+`@sigrea/react` does not replace React state. It subscribes components to
+Sigrea signals and mounts molecules with the component lifecycle.
 
 ## Install
 
@@ -30,122 +13,131 @@
 npm install @sigrea/react @sigrea/core react react-dom
 ```
 
-Install `@sigrea/use` as well when shared molecules use utilities such as
-`createEvents`.
-
 Requires React 18+ and Node.js 24 or later.
+
+Install `@sigrea/use` too if your shared molecules use helpers from that
+package, such as `createEvents`.
 
 ## Quick Start
 
-### Consume a Signal
+Define state in a molecule. Mount that molecule in a component with
+`useMolecule()`, then read returned signals with `useSignal()`.
 
 ```tsx
-import { signal } from "@sigrea/core";
-import { useSignal } from "@sigrea/react";
-
-const count = signal(0);
-
-export function CounterLabel() {
-  const value = useSignal(count);
-  return <span>{value}</span>;
-}
-```
-
-### Bridge Framework-Agnostic Molecules
-
-```tsx
-import {
-  computed,
-  get,
-  molecule,
-  readonly,
-  signal,
-  toSignal,
-} from "@sigrea/core";
+import { molecule, readonly, signal } from "@sigrea/core";
 import { useMolecule, useSignal } from "@sigrea/react";
-import { createEvents } from "@sigrea/use";
 
-type DialogProps = {
-  open: boolean;
-  disabled?: boolean;
-};
+const CounterMolecule = molecule(() => {
+  const count = signal(0);
 
-type DialogEvents = {
-  "update:open": [next: boolean];
-};
-
-const DialogMolecule = molecule<DialogProps>((props) => {
-  const { send, on } = createEvents<DialogEvents>();
-  const isOpen = toSignal(props, "open");
-  const isDisabled = computed(() => props.disabled ?? false);
-
-  const emitOpenChange = async (next: boolean) => {
-    if (isDisabled.value || isOpen.value === next) {
-      return;
-    }
-    await send("update:open", next);
-  };
-
-  const open = () => {
-    return emitOpenChange(true);
-  };
-
-  const close = () => {
-    return emitOpenChange(false);
-  };
-
-  const toggle = () => {
-    return emitOpenChange(!isOpen.value);
+  const increment = () => {
+    count.value++;
   };
 
   return {
-    on,
-    open,
-    close,
-    toggle,
+    count: readonly(count),
+    increment,
   };
 });
 
-const DialogControllerMolecule = molecule(() => {
-  const isOpen = signal(false);
-  const dialog = get(DialogMolecule, () => ({
-    open: isOpen.value,
-  }));
-
-  dialog.on("update:open", (next) => {
-    isOpen.value = next;
-  });
-
-  return {
-    isOpen: readonly(isOpen),
-    open: dialog.open,
-    close: dialog.close,
-    toggle: dialog.toggle,
-  };
-});
-
-export function DialogButton() {
-  const dialog = useMolecule(DialogControllerMolecule);
-  const isOpen = useSignal(dialog.isOpen);
+export function Counter() {
+  const counter = useMolecule(CounterMolecule);
+  const count = useSignal(counter.count);
 
   return (
-    <button onClick={dialog.toggle}>
-      {isOpen ? "Close" : "Open"}
+    <button type="button" onClick={counter.increment}>
+      Count: {count}
     </button>
   );
 }
 ```
 
-### Work with Deep Signals
+Use `useComputed()` when the source is known to be a `computed()` value and you
+want TypeScript to enforce that. `useSignal()` also works with computed values.
+
+## Molecules With Props
+
+Pass a props object when the molecule only needs the initial values. React keeps
+the same molecule instance while the factory stays the same, so object props are
+not resynced on each render.
+
+```tsx
+import { molecule, readonly, signal } from "@sigrea/core";
+import { useMolecule, useSignal } from "@sigrea/react";
+
+const CounterMolecule = molecule((props: { initialCount: number }) => {
+  const count = signal(props.initialCount);
+
+  const reset = () => {
+    count.value = props.initialCount;
+  };
+
+  const increment = () => {
+    count.value++;
+  };
+
+  return {
+    count: readonly(count),
+    increment,
+    reset,
+  };
+});
+
+function Counter({ initialCount }: { initialCount: number }) {
+  const counter = useMolecule(CounterMolecule, { initialCount });
+  const count = useSignal(counter.count);
+
+  return (
+    <>
+      <span>Count: {count}</span>
+      <button type="button" onClick={counter.increment}>
+        Increment
+      </button>
+      <button type="button" onClick={counter.reset}>
+        Reset
+      </button>
+    </>
+  );
+}
+```
+
+Pass a props getter when the molecule must keep reading updated React values.
+The dependency list is required and follows normal React rules.
+
+```tsx
+import { computed, molecule } from "@sigrea/core";
+import { useMolecule, useSignal } from "@sigrea/react";
+
+const LabelMolecule = molecule((props: { label: string }) => {
+  return {
+    label: computed(() => props.label.trim()),
+  };
+});
+
+function Label({ label }: { label: string }) {
+  const model = useMolecule(LabelMolecule, () => ({ label }), [label]);
+  const text = useSignal(model.label);
+
+  return <span>{text}</span>;
+}
+```
+
+Inside a molecule, read props as `props.name`. Destructuring copies the current
+value and loses reactivity.
+
+## Deep Signals
+
+Use `useDeepSignal()` when a component reads or mutates a `deepSignal()` object.
+The returned object keeps its identity, and deep mutations trigger a re-render.
 
 ```tsx
 import { deepSignal } from "@sigrea/core";
 import { useDeepSignal } from "@sigrea/react";
 
-const form = deepSignal({ name: "Mendako" });
+const profile = deepSignal({ name: "Mendako" });
 
 export function ProfileForm() {
-  const state = useDeepSignal(form);
+  const state = useDeepSignal(profile);
 
   return (
     <label>
@@ -161,38 +153,85 @@ export function ProfileForm() {
 }
 ```
 
+## Controlled Values
+
+For controlled UI, keep the value in a controller molecule. A child molecule
+calls `send("update:open", next)` when it wants the value to change.
+`@sigrea/use` provides `createEvents()` for this pattern.
+
+```tsx
+import {
+  computed,
+  get,
+  molecule,
+  readonly,
+  signal,
+  toSignal,
+} from "@sigrea/core";
+import { createEvents } from "@sigrea/use";
+import { useMolecule, useSignal } from "@sigrea/react";
+
+type DialogProps = {
+  open: boolean;
+  disabled?: boolean;
+};
+
+type DialogEvents = {
+  "update:open": [next: boolean];
+};
+
+const DialogMolecule = molecule((props: DialogProps) => {
+  const { send, on } = createEvents<DialogEvents>();
+  const isOpen = toSignal(props, "open");
+  const isDisabled = computed(() => props.disabled ?? false);
+
+  const setOpen = async (next: boolean) => {
+    if (isDisabled.value || isOpen.value === next) {
+      return;
+    }
+
+    await send("update:open", next);
+  };
+
+  return {
+    on,
+    toggle: () => setOpen(!isOpen.value),
+  };
+});
+
+const DialogControllerMolecule = molecule(() => {
+  const isOpen = signal(false);
+  const dialog = get(DialogMolecule, () => ({ open: isOpen.value }));
+
+  dialog.on("update:open", (next) => {
+    isOpen.value = next;
+  });
+
+  return {
+    isOpen: readonly(isOpen),
+    toggle: dialog.toggle,
+  };
+});
+
+export function DialogButton() {
+  const dialog = useMolecule(DialogControllerMolecule);
+  const isOpen = useSignal(dialog.isOpen);
+
+  return (
+    <button type="button" onClick={dialog.toggle}>
+      {isOpen ? "Close" : "Open"}
+    </button>
+  );
+}
+```
+
+Components should not call `dialog.on(...)` in render. Put those event
+subscriptions in controller molecules. If a React wrapper needs an `open` and
+`onOpenChange` API, wire that at the component boundary.
+
 ## API Reference
 
-### useSignal
-
-```tsx
-function useSignal<T>(
-  signal: Signal<T> | ReadonlySignal<T> | Computed<T>
-): T
-```
-
-Subscribes to a signal or computed value and returns its current value. The component re-renders when the source changes.
-
-Unlike the Vue adapter, this hook returns the unwrapped value `T` directly rather
-than a ref.
-
-### useComputed
-
-```tsx
-function useComputed<T>(source: Computed<T>): T
-```
-
-Subscribes to a computed value and returns its current value. Prefer this over `useSignal` when the source is statically known to be `Computed<T>`, so type-checking enforces that only computed sources are passed.
-
-### useDeepSignal
-
-```tsx
-function useDeepSignal<T extends object>(signal: DeepSignal<T>): T
-```
-
-Exposes a deep signal object for direct mutation within the component. Updates to nested properties trigger re-renders, and the subscription is cleaned up when the component unmounts.
-
-### useMolecule
+### `useMolecule`
 
 ```tsx
 function useMolecule<TReturn extends object>(
@@ -211,87 +250,94 @@ function useMolecule<TReturn extends object, TProps extends object>(
 ): MoleculeInstance<TReturn, TProps>
 ```
 
-Mounts a molecule factory and returns its MoleculeInstance. The molecule's scope is bound to the component lifecycle: `onMount` callbacks run after the component mounts, and `onUnmount` callbacks run before it unmounts.
+Mounts a molecule and returns its instance. `onMount`, `watch`, and
+`watchEffect` run after the component commits. In the browser they run before
+paint through `useLayoutEffect`. `onUnmount` runs when the component unmounts,
+then the molecule is disposed in a microtask.
 
-**Lifecycle Timing**
+If a molecule has no props, or all props are optional, you can omit the props
+argument.
 
-Molecule lifecycles are bound to React commits for precise timing control:
+`@sigrea/react` hooks are for Client Components. Do not call `useMolecule`,
+`useSignal`, `useComputed`, or `useDeepSignal` directly from a React Server
+Component. During server rendering, molecules can be created for the render
+pass, but they are not mounted.
 
-- In **browser environments**, molecule mounting happens synchronously after the component commits but before paint (via `useLayoutEffect`). This matches Vue 3's `onMounted` timing, ensuring consistent behavior across frameworks.
-- In **SSR environments**, `useMolecule` supports both `renderToString` and streaming server rendering (`renderToPipeableStream`, `renderToReadableStream`). The molecule instance is created during render so components can read its state, but it is never mounted on the server.
-- `onMount`, `watch`, and `watchEffect` registered during setup do not run during server rendering.
-- After a **server render** finishes, the unmounted molecule instance is disposed automatically in a microtask so setup-scope `onDispose` cleanups do not leak across requests.
+### `useSignal`
 
-`onMount`, `watch`, and `watchEffect` run after the component commits. In the
-browser, they run before paint.
+```tsx
+function useSignal<T>(
+  source: Signal<T> | ReadonlySignal<T> | Computed<T>
+): T
+```
 
-**Props Handling**
+Subscribes to a signal or computed value and returns the current value. The
+component re-renders when the source changes.
 
-`useMolecule` keeps the same molecule instance while the factory stays the same.
-Molecules without props, and molecules whose props are all optional, can be
-mounted without a props argument. Passing a props object directly creates an
-initial snapshot. Passing a props getter requires a React dependency list, such
-as `() => ({ open })` with `[open]`, and syncs top-level props only after those
-dependencies change. This matches React's dependency model and avoids resyncing
-referential props on every commit.
+### `useComputed`
 
-The dependency list is part of the React adapter contract. Include every React
-value read by the getter. If the getter reads a value that is not in the list,
-the molecule props will not update when that value changes.
+```tsx
+function useComputed<T>(source: Computed<T>): T
+```
 
-Inside a molecule, read props as `props.name`; destructuring copies the current
-value and loses reactivity.
+Subscribes to a computed value and returns the current value. Use this when the
+call site should only accept `Computed<T>`.
 
-React components mount the root or controller molecule and use `useSignal()` to
-read returned signals. Raw molecule events such as `dialog.on(...)` belong
-inside the molecule graph, not in component bodies. If a UI wrapper needs a
-React-controlled API such as `open` + `onOpenChange`, bridge it at the wrapper
-boundary.
+### `useDeepSignal`
 
-**Client Components and SSR**
+```tsx
+function useDeepSignal<T extends object>(source: DeepSignal<T>): T
+```
 
-`@sigrea/react` exports hooks and is intended for Client Components. Do not call
-`useMolecule`, `useSignal`, `useComputed`, or `useDeepSignal` directly from a
-React Server Component.
+Subscribes to a deep signal object. Nested writes trigger a re-render, and the
+subscription is cleaned up when the component unmounts.
 
-During server rendering, molecule instances can be created for the render pass,
-but they are not mounted. `onMount`, `watch`, and `watchEffect` registered during
-setup do not run on the server. After server rendering completes, unmounted
-molecules are disposed in a microtask.
+### `useSnapshot`
+
+```tsx
+function useSnapshot<T>(handler: SnapshotHandler<T>): T
+```
+
+Low-level hook for custom snapshot handlers from `@sigrea/core`. Most apps use
+`useSignal`, `useComputed`, or `useDeepSignal` instead.
 
 ## Testing
 
+Use the same shape in tests as in components: render the component, interact
+with it, and assert the visible result.
+
 ```tsx
-// tests/Counter.test.tsx
-import { render, screen, fireEvent } from "@testing-library/react";
-import { Counter } from "../components/Counter";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { Counter } from "./Counter";
 
-it("increments and displays the updated count", () => {
-  render(<Counter initialCount={10} />);
+it("increments the counter", () => {
+  render(<Counter />);
 
-  const incrementButton = screen.getByText("Increment");
-  fireEvent.click(incrementButton);
+  fireEvent.click(screen.getByRole("button", { name: "Count: 0" }));
 
-  expect(screen.getByText("11")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Count: 1" })).toBeInTheDocument();
 });
 ```
 
+For molecule-only tests, use `trackMolecule()` and
+`disposeTrackedMolecules()` from `@sigrea/core` so mount-scope work is cleaned
+up after each test.
+
 ## Handling Scope Cleanup Errors
 
-For global error handling configuration, see [@sigrea/core - Handling Scope Cleanup Errors](https://github.com/sigrea/core#handling-scope-cleanup-errors).
+For global error handling configuration, see
+[@sigrea/core - Handling Scope Cleanup Errors](https://github.com/sigrea/core#handling-scope-cleanup-errors).
 
-In React apps, configure the handler in your application entry point before rendering:
+Configure the handler in your application entry point before rendering:
 
 ```tsx
-// index.tsx or main.tsx
 import { setScopeCleanupErrorHandler } from "@sigrea/core";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 
 setScopeCleanupErrorHandler((error, context) => {
-  console.error(`Cleanup failed:`, error);
+  console.error("Cleanup failed:", error);
 
-  // Forward to monitoring service
   if (typeof Sentry !== "undefined") {
     Sentry.captureException(error, {
       tags: { scopeId: context.scopeId, phase: context.phase },
@@ -306,24 +352,18 @@ createRoot(document.getElementById("root")!).render(<App />);
 
 This repo targets Node.js 24 or later.
 
-If you use mise:
+- `pnpm install` installs dependencies.
+- `pnpm test` runs the Vitest suite once.
+- `pnpm typecheck` runs TypeScript checks.
+- `pnpm test:coverage` collects coverage.
+- `pnpm build` builds CJS and ESM bundles with unbuild.
+- `pnpm -s cicheck` runs the local CI chain.
+- `pnpm dev` launches the playground counter demo.
 
-- `mise trust -y` — trust `mise.toml` (first run only).
-- `pnpm -s cicheck` — run CI-equivalent checks locally.
-- `mise run notes` — preview release notes (optional).
-
-You can also run pnpm scripts directly:
-
-- `pnpm install` — install dependencies.
-- `pnpm test` — run the Vitest suite once (no watch).
-- `pnpm typecheck` — run TypeScript type checking.
-- `pnpm test:coverage` — collect coverage.
-- `pnpm build` — compile via unbuild to produce dual CJS/ESM bundles.
-- `pnpm -s cicheck` — run CI checks locally.
-- `pnpm dev` — launch the playground counter demo.
+If you use mise, run `mise trust -y` once before using mise tasks.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for workflow details.
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT. See [LICENSE](./LICENSE).
