@@ -1,6 +1,6 @@
 {
 	"name": "@sigrea/react",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"description": "React hooks for Sigrea molecules and signals.",
 	"license": "MIT",
 	"type": "module",

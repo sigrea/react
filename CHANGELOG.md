@@ -1,5 +1,25 @@
 # @sigrea/react
 
+## v0.7.1
+
+[compare changes](https://github.com/sigrea/react/compare/v0.7.0...v0.7.1)
+
+### 📖 Documentation
+
+- Clarify event-driven action examples ([#25](https://github.com/sigrea/react/pull/25))
+- Improve React adapter package docs ([#26](https://github.com/sigrea/react/pull/26))
+- Link use references in React README ([#27](https://github.com/sigrea/react/pull/27))
+
+### 🏡 Chore
+
+- Harden React adapter contract and release checks ([#22](https://github.com/sigrea/react/pull/22))
+- Refresh browser compatibility data ([#23](https://github.com/sigrea/react/pull/23))
+- Verify core 0.7.1 dependency ([#24](https://github.com/sigrea/react/pull/24))
+
+### ❤️ Contributors
+
+- Aose ([@aose-yuu](https://github.com/aose-yuu))
+
 ## v0.7.0
 
 [compare changes](https://github.com/sigrea/react/compare/v0.6.1...v0.7.0)
