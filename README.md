@@ -15,8 +15,8 @@ npm install @sigrea/react @sigrea/core react react-dom
 
 Requires React 18+ and Node.js 24 or later.
 
-Install `@sigrea/use` too if your shared molecules use helpers from that
-package, such as `createEvents`.
+Install [`@sigrea/use`][sigrea-use] too if your shared molecules use helpers
+from that package, such as `createEvents`.
 
 ## Quick Start
 
@@ -157,7 +157,8 @@ export function ProfileForm() {
 
 For controlled UI, keep the value in a controller molecule. A child molecule
 calls `send("update:open", next)` when it wants the value to change.
-`@sigrea/use` provides `createEvents()` for this pattern.
+[`@sigrea/use`][sigrea-use] provides [`createEvents()`][create-events] for this
+pattern.
 
 ```tsx
 import {
@@ -326,7 +327,7 @@ up after each test.
 ## Handling Scope Cleanup Errors
 
 For global error handling configuration, see
-[@sigrea/core - Handling Scope Cleanup Errors](https://github.com/sigrea/core#handling-scope-cleanup-errors).
+[@sigrea/core - Handling Scope Cleanup Errors][core-cleanup-errors].
 
 Configure the handler in your application entry point before rendering:
 
@@ -362,8 +363,13 @@ This repo targets Node.js 24 or later.
 
 If you use mise, run `mise trust -y` once before using mise tasks.
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for workflow details.
+See [CONTRIBUTING.md](https://github.com/sigrea/react/blob/main/CONTRIBUTING.md)
+for workflow details.
 
 ## License
 
 MIT. See [LICENSE](./LICENSE).
+
+[core-cleanup-errors]: https://github.com/sigrea/core#handling-scope-cleanup-errors
+[create-events]: https://github.com/sigrea/use/tree/main/packages/use/createEvents
+[sigrea-use]: https://www.npmjs.com/package/@sigrea/use
