@@ -1,6 +1,5 @@
 // @vitest-environment node
 
-// @ts-expect-error This node-only test imports a built-in module without node types in the package tsconfig.
 import { PassThrough } from "node:stream";
 import { Suspense, createElement, use } from "react";
 import {
@@ -8,7 +7,7 @@ import {
 	renderToReadableStream,
 	renderToString,
 } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import {
 	molecule,
