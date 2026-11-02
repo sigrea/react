@@ -1,5 +1,12 @@
 import { act, createElement } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+} from "vite-plus/test";
 
 import type { SnapshotHandler } from "@sigrea/core";
 import { createSignalHandler, signal } from "@sigrea/core";

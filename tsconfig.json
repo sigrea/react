@@ -12,11 +12,11 @@
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
 		"outDir": "dist",
-		"types": ["vitest/globals"],
-		"baseUrl": ".",
+		"types": ["vitest/globals", "node"],
 		"paths": {
 			"@sigrea/react": ["./index.ts"]
-		}
+		},
+		"rootDir": "."
 	},
 	"include": [
 		"index.ts",
